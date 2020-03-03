@@ -3,19 +3,16 @@ const isPromise = require('is-promise');
 const isEmpty = require('lodash/isEmpty');
 const ApiError = require('../Error/ApiError.js');
 const ApiResponse = require('../Response/ApiResponse.js');
-// for jest testing (in node) use ky-universal otherwise just ky
-let kyImport, ky;
+let ky;
 if (typeof process !== 'undefined') {
-	// node using shimmed fetch()
-	kyImport = require('ky-universal');
-	ky = kyImport;
+	// node/jest using shimmed fetch()
+	ky = require('ky-universal');
 } else {
 	// browser using native fetch()
-	kyImport = require('ky');
-	ky = kyImport.default;
+	ky = require('ky');
 }
-const TimeoutError = kyImport.TimeoutError;
-const HTTPError = kyImport.HTTPError;
+const TimeoutError = ky.TimeoutError;
+const HTTPError = ky.HTTPError;
 
 class ApiService {
 	/**

@@ -2,9 +2,14 @@
   "name": "api-client",
   "version": "1.0.0",
   "description": "JavaScript api client for use in React and Node",
-  "main": ".prettierrc.js",
+  "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest",
+    "test-watch": "jest --watch",
+    "coverage": "jest --collectCoverage",
+    "view-coverage": "open ./coverage/lcov-report/index.html",
+    "docs": "npx documentation build src/** -f html -o docs",
+    "open-docs": "open './docs/index.html'"
   },
   "repository": {
     "type": "git",
@@ -12,12 +17,13 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "Sharpr Internal",
   "bugs": {
     "url": "https://github.com/RightIntel/api-client/issues"
   },
   "homepage": "https://github.com/RightIntel/api-client#readme",
   "devDependencies": {
+    "documentation": "^12.1.4",
     "jest": "^25.1.0",
     "prettier": "^1.19.1"
   },
