@@ -1,4 +1,4 @@
-const isEqual = require('lodash/isequal');
+const isEqual = require('lodash/isEqual');
 const isPromise = require('is-promise');
 const isEmpty = require('lodash/isEmpty');
 const ApiError = require('../Error/ApiError.js');
