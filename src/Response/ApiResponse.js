@@ -86,6 +86,13 @@ class ApiResponse {
 	}
 
 	/**
+	 * @var {String} statusClass  The category of response (one of 1xx, 2xx, 3xx, 4xx, 5xx)
+	 */
+	get statusClass() {
+		return this._response.status.slice(0, 1) + 'xx';
+	}
+
+	/**
 	 * @var {Headers} headers  The fetch response headers
 	 * @see https://developer.mozilla.org/en-US/docs/Web/API/Headers
 	 */

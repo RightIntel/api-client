@@ -11,7 +11,7 @@ const {
 	fromUtc,
 } = dateInterceptor;
 
-describe('isDateFormat', () => {
+describe('isDateFormat()', () => {
 	it('should recognize ISO with milliseconds and timezone', () => {
 		expect(isDateFormat('2016-01-05T10:38:33.000+00:00')).toBe(true);
 	});
@@ -37,7 +37,7 @@ describe('isDateFormat', () => {
 	});
 });
 
-describe('isDateField', () => {
+describe('isDateField()', () => {
 	it('should not recognize moo', () => {
 		expect(isDateField('moo')).toBe(false);
 	});
@@ -124,9 +124,26 @@ describe('dateInterceptor requests', () => {
 		expect(request.json.created_at).toBe(day1);
 		expect(request.searchParams.created).toBe(day1);
 	});
+
+	it('should not change invalid dates', () => {
+		const day1 = '9999-99-99 99:99:99';
+		const request = {
+			json: { created_at: day1 },
+			searchParams: { created: day1 },
+		};
+		interceptor.request({ request });
+		expect(request.json.created_at).toBe(day1);
+		expect(request.searchParams.created).toBe(day1);
+	});
+
+	it('should do nothing if json and searchParams is empty', () => {
+		const request = {};
+		interceptor.request({ request });
+		expect(request).toEqual({});
+	});
 });
 
-xdescribe('dateInterceptor responses', () => {
+describe('dateInterceptor responses', () => {
 	it('should transform response data', () => {
 		const offset = new Date().getTimezoneOffset();
 		const time1Utc = '2016-06-01T18:00:00+00:00';
@@ -147,7 +164,6 @@ xdescribe('dateInterceptor responses', () => {
 				],
 			},
 		};
-		console.log(response.data.level2);
 		interceptor.response({ response });
 		expect(response.data.modified_at).toBe(processedDate);
 		expect(response.data.publish_date).toBe(processedDate);
@@ -157,14 +173,23 @@ xdescribe('dateInterceptor responses', () => {
 
 	it('should not change plain dates', () => {
 		const day1 = '2016-06-01';
-		let response = {
+		const response = {
 			data: {
 				a: { created_at: day1 },
 				b: { created: day1 },
 			},
 		};
-		interceptor.request({ response });
+		interceptor.response({ response });
 		expect(response.data.a.created_at).toBe(day1);
 		expect(response.data.b.created).toBe(day1);
+	});
+
+	it('should not change invalid dates', () => {
+		const day1 = '9999-99-99 99:99:99';
+		const response = {
+			data: { created_at: day1 },
+		};
+		interceptor.response({ response });
+		expect(response.data.created_at).toBe(day1);
 	});
 });

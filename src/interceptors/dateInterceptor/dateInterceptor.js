@@ -58,7 +58,7 @@ function isDateField(fieldName) {
 function toUtc(dateStr) {
 	let dateObj = moment(dateStr);
 	if (!dateObj.isValid()) {
-		dateObj = moment();
+		return dateStr;
 	}
 	return dateObj.format();
 }

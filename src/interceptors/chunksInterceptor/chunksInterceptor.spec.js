@@ -31,4 +31,22 @@ describe('chunksInterceptor', () => {
 		chunksInterceptor.request({ request });
 		expect(request.headers).toEqual(expected);
 	});
+
+	it('should ignore non-strings', () => {
+		const headers = {
+			a: new Function('return "' + new Array(3000).join('one') + '"'),
+			b: false,
+			c: 'three',
+		};
+		const request = { headers };
+		const expected = {
+			a: new Function('return "' + new Array(3000).join('one') + '"'),
+			b: false,
+			c: 'three',
+		};
+		chunksInterceptor.request({ request });
+		request.headers.a = request.headers.a.toString();
+		expected.a = expected.a.toString();
+		expect(request.headers).toEqual(expected);
+	});
 });

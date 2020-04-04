@@ -9,9 +9,6 @@ function request({ request }) {
 	// (e.g. "Hubs" header can get really long for superadmins)
 	// see api2->loadRequestHeaders()
 	for (const name in request.headers) {
-		if (!request.headers.hasOwnProperty(name)) {
-			continue;
-		}
 		const value = request.headers[name];
 		if (
 			!value ||
