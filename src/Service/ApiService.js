@@ -4,7 +4,11 @@ const isEmpty = require('lodash/isEmpty');
 const ApiError = require('../Error/ApiError.js');
 const ApiResponse = require('../Response/ApiResponse.js');
 let ky;
-if (typeof process !== 'undefined') {
+if (
+	typeof process !== 'undefined' &&
+	process.versions &&
+	process.versions.node
+) {
 	// node/jest using shimmed fetch()
 	ky = require('ky-universal');
 } else {
