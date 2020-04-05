@@ -10,6 +10,9 @@ if (typeof process !== 'undefined') {
 } else {
 	// browser using native fetch()
 	ky = require('ky');
+	if (typeof ky !== 'function') {
+		ky = ky.default;
+	}
 }
 const TimeoutError = ky.TimeoutError;
 const HTTPError = ky.HTTPError;

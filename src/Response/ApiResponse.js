@@ -27,12 +27,13 @@ class ApiResponse {
 
 	/**
 	 * Initialize a response with the given data
-	 * @param {String} endpoint  The endpoint or URL that was requested
-	 * @param {Object} request  The request parameters that were passed to ky
-	 * @param {Response} response  The raw fetch response
-	 * @param {String|null} type  Either json, text or null depending on type of data returned
-	 * @param {*|null} data  JSON data returned by the endpoint (usually Array or Object)
-	 * @param {String|null} text  Text data returned by the endpoint
+	 * @param {Object} init
+	 * @property {String} endpoint  The endpoint or URL that was requested
+	 * @property {Object} request  The request parameters that were passed to ky
+	 * @property {Response} response  The raw fetch response
+	 * @property {String|null} type  Either json, text or null depending on type of data returned
+	 * @property {*|null} data  JSON data returned by the endpoint (usually Array or Object)
+	 * @property {String|null} text  Text data returned by the endpoint
 	 */
 	constructor({
 		endpoint,
@@ -89,7 +90,7 @@ class ApiResponse {
 	 * @var {String} statusClass  The category of response (one of 1xx, 2xx, 3xx, 4xx, 5xx)
 	 */
 	get statusClass() {
-		return this._response.status.slice(0, 1) + 'xx';
+		return String(this._response.status).slice(0, 1) + 'xx';
 	}
 
 	/**
@@ -164,7 +165,7 @@ class ApiResponse {
 	 * @var {Number} location  The value of the Content-Length HTTP response header
 	 */
 	get contentLength() {
-		return this._response.headers.get('Content-Length');
+		return parseInt(this._response.headers.get('Content-Length'), 10);
 	}
 
 	/**
@@ -203,7 +204,10 @@ class ApiResponse {
 			id = this._response.headers.get('API-Record-Id');
 		}
 		if (!id) {
-			id = String(this._response.headers.get('Location')).replace(/^\D+/, '');
+			const match = String(this._response.headers.get('Location')).match(
+				/\/(\d+)$/
+			);
+			id = match ? match[1] : null;
 		}
 		if (!id) {
 			return null;
@@ -234,15 +238,14 @@ class ApiResponse {
 			this.request.searchParams &&
 			this.request.searchParams[name] !== undefined
 		) {
-			return this.request.searchParams[name];
+			return parseInt(this.request.searchParams[name], 10);
 		}
-		const match = this.request.url.match(
-			new RegExp(`(\\?|&)${name}=(\\d+)(&|$)`)
-		);
+		const urlRegex = new RegExp(`(?:\\?|&)${name}=(\\d+)(&|$)`);
+		const match = this.request.url && this.request.url.match(urlRegex);
 		if (!match) {
 			return null;
 		}
-		return parseFloat(match[1]) || null;
+		return parseInt(match[1], 10) || null;
 	}
 }
 
