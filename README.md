@@ -2,7 +2,7 @@
 
 JavaScript api client for use in React and Node
 
-# Tell me more
+## Tell me more
 
 Similar to our Angular ApiProvider but more intuitive. Target uses include:
 
@@ -10,15 +10,24 @@ Similar to our Angular ApiProvider but more intuitive. Target uses include:
 - API v4 endpoints written in JavaScript
 - API integration testing (v2, v3, v4)
 
-## Key
+## Table of Contents
+
+- [Request API](#request-api)
+- [How endpoints work](#how-endpoints-work)
+- [Response API](#response-api)
+- [Handling Errors](#handling-errors)
+- [Special Methods](#special-methods)
+- [Aborting Requests](#aborting-requests)
+- [Caching](#caching)
+- [Interceptors](#interceptors)
+
+## Request API
 
 Use the following key for the origin of each option:
 
 - `[f]` From window.fetch - [docs](https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/fetch)
 - `[S]` Custom Sharpr item
 - `[k]` From ky - [docs](https://github.com/sindresorhus/ky)
-
-## Requests
 
 ```jsx harmony
 const { request, head, get, post, del, put, patch } = request('api-client');
@@ -57,9 +66,9 @@ On sharpr.com:
 
 For other stacks or vanity domains, the proper domain will be used.
 
-## ApiResponse
+## Response API
 
-A custom Sharpr class to make it easier to work with responses.
+`ApiResponse` is a custom Sharpr class to make it easier to work with responses.
 
 - `{Object} request` The original request object that was passed to ky `[k]`
   - `{String} url` A raw URL to use instead of the endpoint `[S]`
@@ -95,11 +104,18 @@ A custom Sharpr class to make it easier to work with responses.
 - `{Number} newId` The value of the `API-New-Record-Id` response header `[S]`
 - `{Number} time` The value of the `API-Response-Time` response header `[S]`
 
-## ApiError
+## Handling Errors
 
-A custom Sharpr class to make it easier to work with response errors.
+ApiError is a custom Sharpr class to make it easier to work with response errors.
 
-All the same properties of `ApiResponse` plus
+```js
+api.get('/hello').then(onSuccess, response => {
+	// response is instance of ApiError
+	// response.error is instance of Error
+});
+```
+
+`ApiError` has the same properties of `ApiResponse` plus
 
 - `{Error} error` The HTTPError or TimeoutError object `[S]`
 
@@ -114,7 +130,7 @@ The following methods are added for convenience:
 
 `patchDifference` example:
 
-```jsx harmony
+```js
 const currState = {
 	fname: 'John',
 	lname: 'Doe',
@@ -130,7 +146,7 @@ api
 
 `submitJob` example:
 
-```jsx harmony
+```js
 const jobInfo = {
 	post_ids: [1, 2, 3, 4],
 	action: 'destroy',
@@ -146,7 +162,7 @@ api.submitJob('/v2/posts/massdelete', jobInfo).then(onSuccess, onError);
 
 ## Aborting requests
 
-```jsx harmony
+```js
 const { abort, get } = require('api-client');
 
 // abort all pending requests
@@ -244,6 +260,10 @@ export function MyComponent() {
   );
 }
 ```
+
+## Caching
+
+[parse-duration](https://github.com/jkroso/parse-duration#readme)
 
 ## Interceptors
 

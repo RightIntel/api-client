@@ -204,9 +204,8 @@ class ApiResponse {
 			id = this._response.headers.get('API-Record-Id');
 		}
 		if (!id) {
-			const match = String(this._response.headers.get('Location')).match(
-				/\/(\d+)$/
-			);
+			const location = this._response.headers.get('Location');
+			const match = String(location).match(/\/(\d+)$/);
 			id = match ? match[1] : null;
 		}
 		if (!id) {

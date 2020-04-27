@@ -3,6 +3,8 @@ const isPromise = require('is-promise');
 const isEmpty = require('lodash/isEmpty');
 const ApiError = require('../Error/ApiError.js');
 const ApiResponse = require('../Response/ApiResponse.js');
+const ApiCache = require('../Cache/ApiCache.js');
+
 let ky;
 if (
 	typeof process !== 'undefined' &&
@@ -31,7 +33,7 @@ class ApiService {
 		 * @type {Object}
 		 * @private
 		 */
-		this.cache = {};
+		this.cache = new ApiCache();
 		/**
 		 * Arrays of registered interceptors
 		 * @type {{request: [], abort: [], response: [], error: [], timeout: []}}
@@ -185,13 +187,10 @@ class ApiService {
 		} else {
 			json = paramsOrData;
 		}
-		let cacheKey;
 		// return cached promise if available
-		if (kyOverrides.cacheFor) {
-			cacheKey = this.getCacheKey(method, url, searchParams);
-			if (this.cache[cacheKey]) {
-				return this.cache[cacheKey];
-			}
+		let cached = this.cache.find(method, url, searchParams);
+		if (cached) {
+			return cached.promise;
 		}
 		// handle cancellation
 		const controller = new AbortController();
@@ -247,51 +246,9 @@ class ApiService {
 		promise.abort = () => controller.abort();
 		// populate cache if specified
 		if (kyOverrides.cacheFor) {
-			this.cache[cacheKey] = promise;
-			setTimeout(() => {
-				this.cache[cacheKey] = undefined;
-			}, this.getCacheSeconds(kyOverrides.cacheFor) * 1000);
+			this.cache.add(promise, method, url, searchParams, kyOverrides.cacheFor);
 		}
 		return promise;
-	}
-
-	/**
-	 * Given method, url and params, get a string key for caching this request
-	 * @param {String} method  The HTTP Verb such as GET, POST
-	 * @param {String} url  The request URL
-	 * @param {Object} params  The GET parameters as an object
-	 * @returns {String}
-	 */
-	getCacheKey(method, url, params) {
-		if (!isEmpty(params)) {
-			url += '?' + this.getQueryString(params);
-		}
-		return `${method} ${url}`;
-	}
-
-	/**
-	 * Given a cacheFor number or string, return the number of seconds to cache for
-	 * @param {Number|String} cacheFor  Number of seconds or a string such as 45s, 5m, 8h, 1d
-	 * @returns {Number}
-	 */
-	getCacheSeconds(cacheFor) {
-		if (typeof cacheFor === 'number') {
-			return cacheFor;
-		}
-		const match = cacheFor.match(
-			/^([\d.]+) ?(?:(days?|d)|(hours?|hr|h)|(minutes?|min|m)|(seconds?|sec|s))$/i
-		);
-		if (!match) {
-			throw new Error(
-				`Unknown cacheFor value "${cacheFor}". Expecting a number of seconds or a string with units`
-			);
-		}
-		const [, number, day, hr, min] = match;
-		let seconds = parseFloat(number);
-		seconds *= min ? 60 : 1;
-		seconds *= hr ? 60 * 60 : 1;
-		seconds *= day ? 60 * 60 * 24 : 1;
-		return seconds;
 	}
 
 	/**
@@ -468,20 +425,6 @@ class ApiService {
 			text = result;
 		}
 		return { type, data, text };
-	}
-
-	/**
-	 * Clear one or all cache entries
-	 * @param {String} [url]  The URL to clear cache; if falsy, clear all cache
-	 * @returns {ApiService}
-	 */
-	clearCache(url = undefined) {
-		if (url) {
-			this.cache[url] = false;
-		} else {
-			this.cache = {};
-		}
-		return this;
 	}
 
 	/**

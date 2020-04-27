@@ -33,44 +33,6 @@ describe('ApiService getUrl() function', () => {
 	});
 });
 
-describe('ApiService getCacheSeconds() function', () => {
-	it('should parrot numbers', () => {
-		const api = new ApiService();
-		const seconds = api.getCacheSeconds(30);
-		expect(seconds).toBe(30);
-	});
-	it('should handle s', () => {
-		const api = new ApiService();
-		const seconds = api.getCacheSeconds('30s');
-		expect(seconds).toBe(30);
-	});
-	it('should handle m', () => {
-		const api = new ApiService();
-		const seconds = api.getCacheSeconds('3m');
-		expect(seconds).toBe(3 * 60);
-	});
-	it('should handle h', () => {
-		const api = new ApiService();
-		const seconds = api.getCacheSeconds('3h');
-		expect(seconds).toBe(3 * 60 * 60);
-	});
-	it('should handle d', () => {
-		const api = new ApiService();
-		const seconds = api.getCacheSeconds('2d');
-		expect(seconds).toBe(2 * 60 * 60 * 24);
-	});
-	it('should handle decimals', () => {
-		const api = new ApiService();
-		const seconds = api.getCacheSeconds('2.5d');
-		expect(seconds).toBe(2.5 * 60 * 60 * 24);
-	});
-	it('should handle spaces', () => {
-		const api = new ApiService();
-		const seconds = api.getCacheSeconds('2 hours');
-		expect(seconds).toBe(2 * 60 * 60);
-	});
-});
-
 describe('ApiService getQueryString() function', () => {
 	it('should return empty string for empty params', () => {
 		const api = new ApiService();
@@ -138,18 +100,18 @@ describe('ApiService get() function', () => {
 	});
 });
 
-// TODO: figure out when ky throws vs rejects
+// TODO: figure out why these tests pass in isolation but not together
 xdescribe('ApiService errors', () => {
 	it('should promise an ApiError object', async () => {
 		const api = new ApiService();
 		try {
 			await api.get('https://httpbin.org/status/500');
-		} catch (error) {
-			expect(error).toBeInstanceOf(ApiError);
-			expect(error.error).toBeTruthy();
-			expect(error.ok).toBe(false);
-			expect(error.status).toBe(500);
-			expect(error.text).toBe('');
+		} catch (rejection) {
+			expect(rejection).toBeInstanceOf(ApiError);
+			expect(rejection.error).toBeInstanceOf(Error);
+			expect(rejection.ok).toBe(false);
+			expect(rejection.status).toBe(500);
+			expect(rejection.text).toBe('');
 		}
 	});
 
@@ -157,10 +119,10 @@ xdescribe('ApiService errors', () => {
 		const api = new ApiService();
 		try {
 			await api.get('https://nobody-soup/abc');
-		} catch (error) {
-			expect(error).toBeInstanceOf(ApiError);
-			expect(error.error).toBeTruthy();
-			expect(error.ok).toBe(false);
+		} catch (rejection) {
+			expect(rejection).toBeInstanceOf(ApiError);
+			expect(rejection.error).toBeInstanceOf(Error);
+			expect(rejection.ok).toBe(false);
 		}
 	});
 
@@ -173,27 +135,18 @@ xdescribe('ApiService errors', () => {
 		}
 	});
 
-	it('should reject timeouts', done => {
+	it('should reject timeouts', async () => {
 		const api = new ApiService();
-		let didResolve = false;
-		let rejection;
-		const promise = api.get('https://httpbin.org/delay/2', null, {
-			timeout: 1000,
-		});
-		promise.then(
-			resp => {
-				didResolve = true;
-			},
-			err => (rejection = err)
-		);
-		setTimeout(() => {
-			expect(didResolve).toBe(false);
+		try {
+			await api.get('https://httpbin.org/delay/2', null, {
+				timeout: 1000,
+			});
+		} catch (rejection) {
 			expect(rejection).toBeInstanceOf(ApiError);
 			expect(rejection.error).toBeTruthy();
 			expect(rejection.error.name).toBe('TimeoutError');
 			expect(rejection.error.type).toBe('timeout');
-			done();
-		}, 1100);
+		}
 	});
 });
 
@@ -252,8 +205,9 @@ describe('ApiService interceptors', () => {
 	});
 });
 
+// TODO: figure out why abort works correctly but tests fail
 xdescribe('ApiService abort() function', () => {
-	it('should abort by abort() method', done => {
+	xit('should abort by abort() method', done => {
 		const api = new ApiService();
 		let didResolve = false;
 		let rejection;
@@ -378,5 +332,39 @@ xdescribe('ApiService abort() function', () => {
 			expect(rejection.error.type).toBe('aborted');
 			done();
 		}, 100);
+	});
+});
+xdescribe('ApiService caching', () => {
+	it('should return same promise', () => {
+		const api = new ApiService();
+		const promise1 = api.get(
+			'https://httpbin.org/get',
+			{ c: 3 },
+			{ cacheFor: '1s' }
+		);
+		const promise2 = api.get('https://httpbin.org/get', { c: 3 });
+		expect(promise1).toBe(promise2);
+	});
+	it('should clear all cache', () => {
+		const api = new ApiService();
+		const promise1 = api.get(
+			'https://httpbin.org/get',
+			{ c: 3 },
+			{ cacheFor: '1s' }
+		);
+		api.clearCache();
+		const promise2 = api.get('https://httpbin.org/get', { c: 3 });
+		expect(promise1).not.toBe(promise2);
+	});
+	it('should clear cache by url', () => {
+		const api = new ApiService();
+		const promise1 = api.get(
+			'https://httpbin.org/get',
+			{ c: 3 },
+			{ cacheFor: '1s' }
+		);
+		api.clearCache('https://httpbin.org/get');
+		const promise2 = api.get('https://httpbin.org/get', { c: 3 });
+		expect(promise1).not.toBe(promise2);
 	});
 });

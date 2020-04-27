@@ -19,7 +19,6 @@ api.del = api.delete.bind(api);
 api.patchDifference = api.patchDifference.bind(api);
 api.abort = api.abort.bind(api);
 api.submitJob = api.submitJob.bind(api);
-api.clearCache = api.clearCache.bind(api);
 
 // export instance
 module.exports = api;

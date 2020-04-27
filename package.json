@@ -4,9 +4,9 @@
   "description": "JavaScript api client for use in React and Node",
   "main": "index.js",
   "scripts": {
-    "test": "jest",
-    "test-watch": "jest --watch",
-    "coverage": "jest --collectCoverage",
+    "test": "npx jest",
+    "test-watch": "npx jest --watch",
+    "coverage": "npx jest --collectCoverage",
     "view-coverage": "open ./coverage/lcov-report/index.html",
     "docs": "npx documentation build src/** -f html -o docs",
     "open-docs": "open './docs/index.html'"
@@ -35,6 +35,7 @@
     "ky-universal": "^0.5.0",
     "lodash": "^4.17.15",
     "moment": "^2.24.0",
-    "moment-parseplus": "^1.1.3"
+    "moment-parseplus": "^1.1.3",
+    "parse-duration": "^0.3.1"
   }
 }
