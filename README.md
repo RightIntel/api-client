@@ -234,36 +234,61 @@ Example:
 
 ```jsx harmony
 export function MyComponent() {
-  const verb = 'get';
-  const endpoint = '/v3/posts/search';
-  const { isLoading, hasError, response, request, abort } = useApiEndpoint(verb, endpoint);
-  const [term, setTerm] = useState('');
-  const doSearch = () => {
-    abort(); // abort any incomplete request
-    request({ term }); // make a request
-  };
-  return (
-    <div>
-      <form onSubmit={doSearch}>
-        Search Posts:
-        <input value={term} onChange={e => setTerm(e.target.value)} />
-        <button>Go</button>
-      </form>
-      {isLoading && <Loader size={16} />}
-      {hasError && <div>Error fetching data</div>}
-      {response && (
-        response.data.map((post, i) => (
-          <div key={i}>{post.headline}</div>
-        )
-      }
-    </div>
-  );
+	const verb = 'get';
+	const endpoint = '/v3/posts/search';
+	const { isLoading, hasError, response, request, abort } = useApiEndpoint(
+		verb,
+		endpoint
+	);
+	const [term, setTerm] = useState('');
+	const doSearch = () => {
+		abort(); // abort any incomplete request
+		request({ term }); // make a request
+	};
+	return (
+		<div>
+			<form onSubmit={doSearch}>
+				Search Posts:
+				<input value={term} onChange={e => setTerm(e.target.value)} />
+				<button>Go</button>
+			</form>
+			{isLoading && <Loader size={16} />}
+			{hasError && <div>Error fetching data</div>}
+			{response &&
+				response.data.map(post => (
+					<div key={post.id}>
+						{post.headline} - {post.summary}
+					</div>
+				))}
+		</div>
+	);
 }
 ```
 
 ## Caching
 
-[parse-duration](https://github.com/jkroso/parse-duration#readme)
+To cache a response for later, use the `cacheFor` option.
+
+`cacheFor` may be a number of milliseconds or a time expression such as the following:
+
+- `1d` => 1 day
+- `8h` => 8 hours
+- `20m` => 20 minutes
+- `30s` => 30 seconds
+- `300ms` => 300 milliseconds
+- `3h 20m` => 3 hours, 20 minutes
+
+See [parse-duration](https://github.com/jkroso/parse-duration#readme) on npm for
+more supported expressions.
+
+Example:
+
+```js
+const result1 = api.get('/abc', { d: 4 }, { cacheFor: '2h' });
+// ... 1 hour later ...
+const result2 = api.get('/abc', { d: 4 }, { cacheFor: '2h' });
+// result1 === result2
+```
 
 ## Interceptors
 
