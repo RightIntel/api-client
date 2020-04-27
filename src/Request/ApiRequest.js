@@ -1,10 +1,8 @@
 let ky;
+const isNode =
+	typeof process !== 'undefined' && process.versions && process.versions.node;
 /* istanbul ignore next */
-if (
-	typeof process !== 'undefined' &&
-	process.versions &&
-	process.versions.node
-) {
+if (isNode) {
 	// node/jest using shimmed fetch()
 	ky = require('ky-universal');
 } else {
@@ -16,20 +14,18 @@ if (
 }
 
 class ApiRequest {
-	constructor(
-		method,
-		endpoint,
-		params = undefined,
-		data = undefined,
-		options = {}
-	) {
+	constructor(method, endpoint, params = {}, data = undefined, options = {}) {
+		// initialize empty values
+		this._params = {};
+		this._headers = {};
+		// save passed values
 		this._method = method;
 		this.endpoint = endpoint;
-		this._params = params;
+		this.params = params;
 		this.data = data;
 		const { headers, ...optionsNoHeaders } = options;
 		this.options = optionsNoHeaders;
-		this.headers = new Headers(headers || {});
+		this.headers = headers;
 		this.abortController = new AbortController();
 		this.pending = false;
 		this._markComplete = this._markComplete.bind(this);
@@ -41,25 +37,28 @@ class ApiRequest {
 		this._method = newMethod;
 	}
 	get params() {
-		let usp;
-		if (this._params instanceof URLSearchParams) {
-			usp = this._params;
-		} else {
-			usp = new URLSearchParams(this._params);
-		}
+		return this._params;
+	}
+	set params(newParams) {
+		let usp = new URLSearchParams(newParams);
 		const params = {};
 		for (const [key, value] of usp.entries()) {
 			params[key] = value;
 		}
-		return params;
+		this._params = params;
 	}
-	set params(newParams) {
-		this._params = newParams;
+	get headers() {
+		return this._headers;
+	}
+	set headers(newHeaders) {
+		const h = new Headers(newHeaders);
+		const headers = {};
+		for (const [key, value] of h.entries()) {
+			headers[key] = value;
+		}
+		this._headers = headers;
 	}
 	get queryString() {
-		if (!this._params) {
-			return '';
-		}
 		// URLSearchParams accepts string, object or another URLSearchParams object
 		const params = new URLSearchParams(this._params);
 		params.sort();
@@ -70,15 +69,20 @@ class ApiRequest {
 	}
 	get url() {
 		if (this.endpoint instanceof URL) {
-			return this.endpoint.toString();
+			return this._maybeAddQueryString(this.endpoint.toString());
 		}
 		// URL is already a full URL
 		if (/^https?:\/\//i.test(this.endpoint)) {
-			return this.endpoint;
+			return this._maybeAddQueryString(this.endpoint);
 		}
 		const match = (this.endpoint || '').match(/^:?\/\/(.+)/);
 		if (match) {
-			return `http://${match[1]}`;
+			/* istanbul ignore next */
+			const protocol =
+				typeof window !== 'undefined' && window.location
+					? window.location.protocol
+					: 'http:';
+			return this._maybeAddQueryString(`${protocol}//${match[1]}`);
 		}
 		// construct using api base url
 		let version = 'v2';
@@ -89,9 +93,15 @@ class ApiRequest {
 				return '/';
 			}
 		);
-		const qs = this.queryString;
-		const qmqs = qs ? `?${qs}` : '';
-		return `/api/${version}${endpoint}${qmqs}`;
+		return this._maybeAddQueryString(`/api/${version}${endpoint}`);
+	}
+	_maybeAddQueryString(value) {
+		let suffix = '';
+		if (this._params && !value.includes('?')) {
+			const qs = this.queryString;
+			suffix = qs ? `?${qs}` : '';
+		}
+		return value + suffix;
 	}
 	set url(newUrl) {
 		this.endpoint = newUrl;

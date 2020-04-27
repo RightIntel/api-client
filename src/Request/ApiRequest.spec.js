@@ -12,6 +12,29 @@ describe('ApiRequest method getter/setter', () => {
 	});
 });
 
+describe('ApiRequest header getter/setter', () => {
+	it('should keep an object', () => {
+		const request = new ApiRequest();
+		request.headers = { a: '1' };
+		expect(request.headers).toEqual({ a: '1' });
+	});
+	it('should accept a Headers object', () => {
+		const request = new ApiRequest();
+		request.headers = new Headers({ a: '1' });
+		expect(request.headers).toEqual({ a: '1' });
+	});
+	it('should accept an entries-type array', () => {
+		const request = new ApiRequest();
+		request.headers = [['a', '1']];
+		expect(request.headers).toEqual({ a: '1' });
+	});
+	it('should accept an entries-type array', () => {
+		const request = new ApiRequest();
+		request.headers.a = '1';
+		expect(request.headers).toEqual({ a: '1' });
+	});
+});
+
 describe('ApiRequest params getter/setter', () => {
 	it('should convert string to object', () => {
 		const request = new ApiRequest();
@@ -36,6 +59,11 @@ describe('ApiRequest params getter/setter', () => {
 	it('should convert URLSearchParams object', () => {
 		const request = new ApiRequest();
 		request.params = new URLSearchParams({ b: '2' });
+		expect(request.params).toEqual({ b: '2' });
+	});
+	it('should allow setting params sub-property', () => {
+		const request = new ApiRequest('get', '/abc', {});
+		request.params.b = '2';
 		expect(request.params).toEqual({ b: '2' });
 	});
 });

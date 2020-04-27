@@ -2,8 +2,9 @@ const isEqual = require('lodash/isEqual');
 const isPromise = require('is-promise');
 const isEmpty = require('lodash/isEmpty');
 const ApiError = require('../Error/ApiError.js');
-const ApiResponse = require('../Response/ApiResponse.js');
+const ApiRequest = require('../Request/ApiRequest.js');
 const ApiCache = require('../Cache/ApiCache.js');
+const ApiResponse = require('../Response/ApiResponse.js');
 
 class ApiService {
 	/**
@@ -142,90 +143,9 @@ class ApiService {
 		);
 		promise.abort = () => request.abort();
 		if (request.options.cacheFor) {
-			this.cache.add(request);
+			this.cache.add(request, promise);
 		}
 		return promise;
-
-		// // ensure method is upper case
-		// method = method.toUpperCase();
-		// // ensure we have at least empty headers for our interceptors to work with
-		// if (!kyOverrides.headers) {
-		// 	kyOverrides.headers = {};
-		// }
-		// // construct URL
-		// let json, searchParams;
-		// let url = this.getUrl(endpoint);
-		// // get URL params or payload
-		// // see https://github.com/sindresorhus/ky#api
-		// if (method === 'GET') {
-		// 	if (!isEmpty(paramsOrData)) {
-		// 		searchParams = paramsOrData;
-		// 	}
-		// } else {
-		// 	json = paramsOrData;
-		// }
-		// // return cached promise if available
-		// let cached = this.cache.find(method, url, searchParams);
-		// if (cached) {
-		// 	return cached.promise;
-		// }
-		// handle cancellation
-		// const controller = new AbortController();
-		// const { signal } = controller;
-		// const cancelToken = { method, endpoint, controller };
-		// this.cancelTokens.push(cancelToken);
-		// const discardCancelToken = () => {
-		// 	this.cancelTokens = this.cancelTokens.filter(
-		// 		token => token.controller === controller
-		// 	);
-		// };
-		// // disable retry
-		// const retry = { limit: 0 };
-		// // non 2xx codes should go into the promise rejection
-		// const throwHttpErrors = true;
-		// // timeout after 5 minutes
-		// const timeout = 5 * 60 * 1000;
-		// // all params
-		// const request = {
-		// 	// we add this URL so that interceptors can alter the URL
-		// 	url,
-		// 	// see https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/fetch#Syntax
-		// 	method,
-		// 	signal,
-		// 	retry,
-		// 	timeout,
-		// 	// see https://github.com/sindresorhus/ky#api
-		// 	json,
-		// 	searchParams,
-		// 	throwHttpErrors,
-		// 	// additional items like header and any values to override the above
-		// 	...kyOverrides,
-		// };
-		// this.interceptors.request.forEach(interceptor => {
-		// 	interceptor({
-		// 		endpoint,
-		// 		request,
-		// 		abortController: controller,
-		// 		api: this,
-		// 	});
-		// });
-		// initiate request
-		// const kyPromise = ky(request.url, request);
-		// kyPromise.then(discardCancelToken, discardCancelToken);
-		// const promise = kyPromise.then(
-		// 	this._getSuccessHandler(endpoint, request),
-		// 	this._getErrorHandler(endpoint, request)
-		// );
-		// promise.finally(() => {
-		// 	promise.abort = () => {};
-		// });
-		// cancelToken.promise = promise;
-		// promise.abort = () => controller.abort();
-		// populate cache if specified
-		// if (kyOverrides.cacheFor) {
-		// 	this.cache.add(promise, method, url, searchParams, kyOverrides.cacheFor);
-		// }
-		// return promise;
 	}
 
 	/**
@@ -398,7 +318,7 @@ class ApiService {
 
 	/**
 	 * Make a GET request to the specified endpoint
-	 * @param {String} endpoint  The endpoint such as "/posts/123"
+	 * @param {String|URL} endpoint  The endpoint such as "/posts/123"
 	 * @param {Object} [params]  Parameters to send in the query string
 	 * @param {Object} [kyOverrides]  Values to override ky request
 	 * @returns {Promise}  Resolves with the ApiResponse and rejects with ApiError
@@ -409,7 +329,7 @@ class ApiService {
 
 	/**
 	 * Make a HEAD request to the specified endpoint
-	 * @param {String} endpoint  The endpoint such as "/posts/123"
+	 * @param {String|URL} endpoint  The endpoint such as "/posts/123"
 	 * @param {Object} [params]  Parameters to send in the query string
 	 * @param {Object} [kyOverrides]  Values to override ky request
 	 * @returns {Promise}  Resolves with the ApiResponse and rejects with ApiError
@@ -420,7 +340,7 @@ class ApiService {
 
 	/**
 	 * Make a POST request to the specified endpoint
-	 * @param {String} endpoint  The endpoint such as "/posts"
+	 * @param {String|URL} endpoint  The endpoint such as "/posts"
 	 * @param {Object} [payload]  Data to send in the post body
 	 * @param {Object} [kyOverrides]  Values to override ky request
 	 * @returns {Promise}  Resolves with the ApiResponse and rejects with ApiError
@@ -431,7 +351,7 @@ class ApiService {
 
 	/**
 	 * Make a PUT request to the specified endpoint
-	 * @param {String} endpoint  The endpoint such as "/posts/123/keywords"
+	 * @param {String|URL} endpoint  The endpoint such as "/posts/123/keywords"
 	 * @param {Object} [payload]  Data to send in the post body
 	 * @param {Object} [kyOverrides]  Values to override ky request
 	 * @returns {Promise}  Resolves with the ApiResponse and rejects with ApiError
@@ -442,7 +362,7 @@ class ApiService {
 
 	/**
 	 * Make a PATCH request to the specified endpoint
-	 * @param {String} endpoint  The endpoint such as "/posts/123"
+	 * @param {String|URL} endpoint  The endpoint such as "/posts/123"
 	 * @param {Object} [payload]  Parameters to send in the patch payload
 	 * @param {Object} [kyOverrides]  Values to override ky request
 	 * @returns {Promise}  Resolves with the ApiResponse and rejects with ApiError
@@ -453,7 +373,7 @@ class ApiService {
 
 	/**
 	 * Make a DELETE request to the specified endpoint
-	 * @param {String} endpoint  The endpoint such as "/posts/123"
+	 * @param {String|URL} endpoint  The endpoint such as "/posts/123"
 	 * @param {Object} [payload]  Parameters to send in the delete payload
 	 * @param {Object} [kyOverrides]  Values to override ky request
 	 * @returns {Promise}  Resolves with the ApiResponse and rejects with ApiError
@@ -464,7 +384,7 @@ class ApiService {
 
 	/**
 	 * Examine two objects and execute a PATCH request on the differences
-	 * @param {String} endpoint  The endpoint such as "/posts/123"
+	 * @param {String|URL} endpoint  The endpoint such as "/posts/123"
 	 * @param {Object} oldValues  Values before
 	 * @param {Object} newValues
 	 * @param {Object} [kyOverrides]  Values to override ky request
@@ -490,7 +410,7 @@ class ApiService {
 	/**
 	 * Submit a job for processing and provide a callback mechanism
 	 * to be notified when the job is complete
-	 * @param {String} endpoint  The endpoint such as "/posts/123"
+	 * @param {String|URL} endpoint  The endpoint such as "/posts/123"
 	 * @param {Object} [payload]  Parameters to send in the delete payload
 	 * @param {Object} [kyOverrides]  Values to override ky request
 	 * @returns {Promise}  Resolves with the ApiResponse and rejects with ApiError

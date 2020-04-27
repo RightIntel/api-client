@@ -1,4 +1,5 @@
 const ApiCache = require('./ApiCache.js');
+const ApiRequest = require('../Request/ApiRequest.js');
 
 jest.useFakeTimers();
 
@@ -53,16 +54,20 @@ describe('ApiCache getMilliseconds() function', () => {
 describe('ApiCache find() function', () => {
 	it('should find a matching item', () => {
 		const cache = new ApiCache();
+		const request = new ApiRequest('get', '/abc');
 		const promise = Promise.resolve(1);
-		cache.add(promise, 'GET', '/abc', {}, 1000);
-		const found = cache.find('GET', '/abc', {});
-		expect(found).toBe(promise);
+		cache.add(request, promise);
+		const found = cache.find(new ApiRequest('get', '/abc'));
+		expect(found.promise).toBe(promise);
 	});
 	it('should not find a mismatching item', () => {
 		const cache = new ApiCache();
+		const request = new ApiRequest('get', '/abc', null, {
+			cacheFor: 1000,
+		});
 		const promise = Promise.resolve(1);
-		cache.add(promise, 'GET', '/abc', {}, 1000);
-		const found = cache.find('GET', '/def', {});
+		cache.add(request, promise);
+		const found = cache.find(new ApiRequest('get', '/def'));
 		expect(found).toBe(null);
 	});
 });
@@ -70,55 +75,67 @@ describe('ApiCache find() function', () => {
 describe('ApiCache add() function', () => {
 	it('should add an item', () => {
 		const cache = new ApiCache();
-		cache.add({}, 'GET', '/abc', {}, 1000);
-		expect(cache.requests).toHaveLength(1);
+		const request = new ApiRequest('get', '/abc');
+		cache.add(request, {});
+		expect(cache.entries).toHaveLength(1);
 	});
 	it('should clear all items', () => {
 		const cache = new ApiCache();
-		cache.add({}, 'GET', '/abc', {}, 1000);
-		cache.add({}, 'GET', '/def', {}, 1000);
+		cache.add(new ApiRequest('get', '/abc'), {});
+		cache.add(new ApiRequest('get', '/def'), {});
 		cache.clear();
-		expect(cache.requests).toHaveLength(0);
+		expect(cache.entries).toHaveLength(0);
 	});
 	it('should clear by method', () => {
 		const cache = new ApiCache();
-		cache.add({}, 'GET', '/abc', {}, 1000);
-		cache.add({}, 'POST', '/abc', {}, 1000);
-		cache.add({}, 'GET', '/def', {}, 1000);
+		cache.add(new ApiRequest('get', '/abc'), {});
+		cache.add(new ApiRequest('post', '/abc'), {});
+		cache.add(new ApiRequest('get', '/def'), {});
 		cache.clear('GET');
-		expect(cache.requests).toHaveLength(1);
+		expect(cache.entries).toHaveLength(1);
 	});
 	it('should clear by method', () => {
 		const cache = new ApiCache();
-		cache.add({}, 'GET', '/abc', {}, 1000);
-		cache.add({}, 'GET', '/abc', {}, 1000);
-		cache.add({}, 'GET', '/def', {}, 1000);
-		cache.clear('GET', '/abc');
-		expect(cache.requests).toHaveLength(1);
+		cache.add(new ApiRequest('get', '/abc'), {});
+		cache.add(new ApiRequest('get', '/abc'), {});
+		cache.add(new ApiRequest('get', '/def'), {});
+		console.log('ENDPOINTS:' + cache.entries.map(e => e.request.endpoint));
+		cache.clear('get', '/abc');
+		expect(cache.entries).toHaveLength(1);
 	});
 	it('should clear by regexp', () => {
 		const cache = new ApiCache();
-		cache.add({}, 'GET', '/abc', {}, 1000);
-		cache.add({}, 'POST', '/abcd', {}, 1000);
-		cache.add({}, 'GET', '/def', {}, 1000);
+		cache.add(new ApiRequest('get', '/abc'), {});
+		cache.add(new ApiRequest('post', '/abc'), {});
+		cache.add(new ApiRequest('get', '/def'), {});
 		cache.clear(/GET|POST/, /abc/);
-		expect(cache.requests).toHaveLength(1);
+		expect(cache.entries).toHaveLength(1);
 	});
 	it('should not error if cache somehow goes missing', () => {
 		const cache = new ApiCache();
-		cache.add({}, 'GET', '/abc', {}, 1000);
-		cache.requests = [];
+		cache.add(
+			new ApiRequest('get', '/abc', null, {
+				cacheFor: 1000,
+			}),
+			{}
+		);
+		cache.entries = [];
 		jest.advanceTimersByTime(2000);
-		expect(cache.requests).toHaveLength(0);
+		expect(cache.entries).toHaveLength(0);
 	});
 });
 
 describe('ApiCache expiration', () => {
 	it('should add an item', () => {
 		const cache = new ApiCache();
-		cache.add({}, 'GET', '/abc', {}, 100);
-		expect(cache.requests).toHaveLength(1);
+		cache.add(
+			new ApiRequest('get', '/abc', null, {
+				cacheFor: 100,
+			}),
+			{}
+		);
+		expect(cache.entries).toHaveLength(1);
 		jest.advanceTimersByTime(200);
-		expect(cache.requests).toHaveLength(0);
+		expect(cache.entries).toHaveLength(0);
 	});
 });

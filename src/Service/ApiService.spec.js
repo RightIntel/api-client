@@ -98,7 +98,7 @@ xdescribe('ApiService errors', () => {
 describe('ApiService interceptors', () => {
 	it('should handle a GET request interceptor with headers', async () => {
 		const api = new ApiService();
-		const incrementer = ({ request, api: passedApi }) => {
+		const incrementer = (request, passedApi) => {
 			expect(passedApi).toBe(api);
 			request.headers.A = '1';
 		};
@@ -109,18 +109,20 @@ describe('ApiService interceptors', () => {
 
 	it('should handle a GET request interceptor', async () => {
 		const api = new ApiService();
-		const incrementer = ({ request }) => {
-			request.searchParams.a++;
+		const incrementer = request => {
+			request.params.a++;
 		};
 		api.addInterceptor({ request: incrementer });
 		const response = await api.get('https://httpbin.org/get', { a: 1 });
-		expect(response.data.args.a).toBe('2');
+		expect(response.request.params).toEqual({ a: 2 });
+		expect(response.request.url).toEqual('https://httpbin.org/get?a=2');
+		expect(response.data.args).toEqual({ a: '2' });
 	});
 
 	it('should handle a GET response interceptor', async () => {
 		const api = new ApiService();
-		const incrementB = ({ request, response }) => {
-			expect(request.searchParams.b).toBe(2);
+		const incrementB = (request, response) => {
+			expect(request.params.b).toBe('2');
 			response.data.args.b++;
 		};
 		api.addInterceptor({ response: incrementB });
@@ -130,8 +132,8 @@ describe('ApiService interceptors', () => {
 
 	it('should handle a POST request interceptor', async () => {
 		const api = new ApiService();
-		const incrementA = ({ request }) => {
-			request.json.a++;
+		const incrementA = request => {
+			request.data.a++;
 		};
 		api.addInterceptor({ request: incrementA });
 		const response = await api.post('https://httpbin.org/post', { a: 1 });
@@ -140,7 +142,7 @@ describe('ApiService interceptors', () => {
 
 	it('should handle a POST response interceptor', async () => {
 		const api = new ApiService();
-		const incrementB = ({ response }) => {
+		const incrementB = (request, response) => {
 			expect(response.data.json.b).toBe(2);
 			response.data.json.b++;
 		};
@@ -150,7 +152,7 @@ describe('ApiService interceptors', () => {
 	});
 });
 
-// TODO: figure out why abort works correctly but tests fail
+// TODO: figure out why abort works correctly but tests fail (problem with setTimeout?)
 xdescribe('ApiService abort() function', () => {
 	xit('should abort by abort() method', done => {
 		const api = new ApiService();
@@ -279,13 +281,13 @@ xdescribe('ApiService abort() function', () => {
 		}, 100);
 	});
 });
-xdescribe('ApiService caching', () => {
+describe('ApiService caching', () => {
 	it('should return same promise', () => {
 		const api = new ApiService();
 		const promise1 = api.get(
 			'https://httpbin.org/get',
 			{ c: 3 },
-			{ cacheFor: '1s' }
+			{ cacheFor: '2s' }
 		);
 		const promise2 = api.get('https://httpbin.org/get', { c: 3 });
 		expect(promise1).toBe(promise2);
@@ -297,19 +299,17 @@ xdescribe('ApiService caching', () => {
 			{ c: 3 },
 			{ cacheFor: '1s' }
 		);
-		api.clearCache();
+		api.cache.clear();
 		const promise2 = api.get('https://httpbin.org/get', { c: 3 });
 		expect(promise1).not.toBe(promise2);
 	});
 	it('should clear cache by url', () => {
 		const api = new ApiService();
-		const promise1 = api.get(
-			'https://httpbin.org/get',
-			{ c: 3 },
-			{ cacheFor: '1s' }
-		);
-		api.clearCache('https://httpbin.org/get');
-		const promise2 = api.get('https://httpbin.org/get', { c: 3 });
+		const promise1 = api.get('https://httpbin.org/get', null, {
+			cacheFor: '1s',
+		});
+		api.cache.clear('get', 'https://httpbin.org/get');
+		const promise2 = api.get('https://httpbin.org/get');
 		expect(promise1).not.toBe(promise2);
 	});
 });
