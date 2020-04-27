@@ -1,10 +1,10 @@
 const ApiResponse = require('../Response/ApiResponse.js');
 
 class ApiError extends ApiResponse {
-    constructor({ error, ...responseProps }) {
-        super(responseProps);
-        this.error = error;
-    }
+	constructor(request, response) {
+		super(request);
+		this.error = response;
+	}
 }
 
 module.exports = ApiError;

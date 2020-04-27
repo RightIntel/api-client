@@ -8,61 +8,6 @@ describe('ApiService class', () => {
 	});
 });
 
-describe('ApiService getUrl() function', () => {
-	it('should leave /api endpoints alone', () => {
-		const api = new ApiService();
-		expect(api.getUrl('/api/v3/posts/search')).toBe('/api/v3/posts/search');
-	});
-
-	it('should return add /api if needed', () => {
-		const api = new ApiService();
-		expect(api.getUrl('/v3/posts/search')).toBe('/api/v3/posts/search');
-	});
-
-	it('should auto add /v2 if needed', () => {
-		const api = new ApiService();
-		expect(api.getUrl('/posts')).toBe('/api/v2/posts');
-	});
-
-	it('should leave full URLs alone', () => {
-		const api = new ApiService();
-		expect(api.getUrl('https://example.com/a')).toBe('https://example.com/a');
-		expect(api.getUrl('http://example.com/a')).toBe('http://example.com/a');
-		expect(api.getUrl('://example.com/a')).toBe('http://example.com/a');
-		expect(api.getUrl('//example.com/a')).toBe('http://example.com/a');
-	});
-});
-
-describe('ApiService getQueryString() function', () => {
-	it('should return empty string for empty params', () => {
-		const api = new ApiService();
-		const queryString = api.getQueryString({});
-		expect(queryString).toBe('');
-	});
-	it('Should serialize alphabetically', () => {
-		const api = new ApiService();
-		const queryString = api.getQueryString({
-			b: 2,
-			a: 1,
-		});
-		expect(queryString).toBe('?a=1&b=2');
-	});
-	it('Should encode URL entities', () => {
-		const api = new ApiService();
-		const queryString = api.getQueryString({
-			a: '= ',
-		});
-		expect(queryString).toBe('?a=%3D%20');
-	});
-	it('Should handle lists with simple commas', () => {
-		const api = new ApiService();
-		const queryString = api.getQueryString({
-			ab: [1, 2],
-		});
-		expect(queryString).toBe('?ab=1%2C2');
-	});
-});
-
 describe('ApiService get() function', () => {
 	/*
 	example response:

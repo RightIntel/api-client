@@ -79,7 +79,7 @@ describe('dateInterceptor requests', () => {
 			zeropad(offset) +
 			':00';
 		let request = {
-			json: {
+			data: {
 				created_at: time1,
 				start_date: time1,
 				level2: [
@@ -89,54 +89,69 @@ describe('dateInterceptor requests', () => {
 					},
 				],
 			},
-			searchParams: {
+			params: {
 				created: time1,
 				last_login: time1,
 			},
 		};
 		interceptor.request({ request });
-		expect(request.json.created_at).toBe(time1Offset);
-		expect(request.json.start_date).toBe(time1Offset);
-		expect(request.searchParams.created).toBe(time1Offset);
-		expect(request.searchParams.last_login).toBe(time1Offset);
-		expect(request.json.level2[0].end_date).toBe(time1Offset);
-		expect(request.json.level2[0].begin_date).toBe(time1Offset);
+		expect(request.data.created_at).toBe(time1Offset);
+		expect(request.data.start_date).toBe(time1Offset);
+		expect(request.params.created).toBe(time1Offset);
+		expect(request.params.last_login).toBe(time1Offset);
+		expect(request.data.level2[0].end_date).toBe(time1Offset);
+		expect(request.data.level2[0].begin_date).toBe(time1Offset);
 	});
 
 	it('should not change dates with non-date keys', () => {
 		const time1 = '2016-06-01 12:00:00';
 		let request = {
-			json: { comment: time1 },
-			searchParams: { search_text: time1 },
+			data: { comment: time1 },
+			params: { search_text: time1 },
 		};
 		interceptor.request({ request });
-		expect(request.json.comment).toBe(time1);
-		expect(request.searchParams.search_text).toBe(time1);
+		expect(request.data.comment).toBe(time1);
+		expect(request.params.search_text).toBe(time1);
+	});
+
+	it('should handle URLSearchParams', () => {
+		const time1 = '2016-06-01 12:00:00';
+		const offset = new Date(2016, 5, 1).getTimezoneOffset() / 60;
+		const time1Offset =
+			'2016-06-01T12:00:00' +
+			(offset > 0 ? '-' : '+') +
+			zeropad(offset) +
+			':00';
+		let request = {
+			params: new URLSearchParams({ created_at: time1 }),
+		};
+		interceptor.request({ request });
+		expect(request.params.get('created_at')).toBe(time1Offset);
 	});
 
 	it('should not change plain dates', () => {
 		const day1 = '2016-06-01';
 		const request = {
-			json: { created_at: day1 },
-			searchParams: { created: day1 },
+			data: { created_at: day1 },
+			params: { created: day1 },
 		};
 		interceptor.request({ request });
-		expect(request.json.created_at).toBe(day1);
-		expect(request.searchParams.created).toBe(day1);
+		expect(request.data.created_at).toBe(day1);
+		expect(request.params.created).toBe(day1);
 	});
 
 	it('should not change invalid dates', () => {
 		const day1 = '9999-99-99 99:99:99';
 		const request = {
-			json: { created_at: day1 },
-			searchParams: { created: day1 },
+			data: { created_at: day1 },
+			params: { created: day1 },
 		};
 		interceptor.request({ request });
-		expect(request.json.created_at).toBe(day1);
-		expect(request.searchParams.created).toBe(day1);
+		expect(request.data.created_at).toBe(day1);
+		expect(request.params.created).toBe(day1);
 	});
 
-	it('should do nothing if json and searchParams is empty', () => {
+	it('should do nothing if data and params is empty', () => {
 		const request = {};
 		interceptor.request({ request });
 		expect(request).toEqual({});

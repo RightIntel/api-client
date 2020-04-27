@@ -34,7 +34,7 @@ class ApiCache {
 	 * @param {Promise<ApiResponse>} promise  The response promise for this request
 	 * @param {String} method  The HTTP verb such as GET, POST, HEAD
 	 * @param {String} url  The URL to request
-	 * @param {String|Object} searchParams  The params in the URL
+	 * @param {String|Object|URLSearchParams} searchParams  The params in the URL
 	 * @param {Number|String} cacheFor  The number of milliseconds or a string expression such as 2h, 20m, 30s
 	 * @see https://github.com/jkroso/parse-duration#readme for supported caching expression
 	 */

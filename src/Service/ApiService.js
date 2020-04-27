@@ -5,24 +5,6 @@ const ApiError = require('../Error/ApiError.js');
 const ApiResponse = require('../Response/ApiResponse.js');
 const ApiCache = require('../Cache/ApiCache.js');
 
-let ky;
-if (
-	typeof process !== 'undefined' &&
-	process.versions &&
-	process.versions.node
-) {
-	// node/jest using shimmed fetch()
-	ky = require('ky-universal');
-} else {
-	// browser using native fetch()
-	ky = require('ky');
-	if (typeof ky !== 'function') {
-		ky = ky.default;
-	}
-}
-const TimeoutError = ky.TimeoutError;
-const HTTPError = ky.HTTPError;
-
 class ApiService {
 	/**
 	 * Setup values we need
@@ -47,11 +29,11 @@ class ApiService {
 			timeout: [],
 		};
 		/**
-		 * Array of cancelation tokens to abort in-process requests
+		 * Array of ApiRequest objects to allow aborting in-process requests
 		 * @type {Array}
 		 * @private
 		 */
-		this.cancelTokens = [];
+		this.pendingRequests = [];
 	}
 
 	/**
@@ -93,7 +75,7 @@ class ApiService {
 		if (isPromise(methodOrPromise)) {
 			// cancel a specific request
 			const promise = methodOrPromise;
-			for (const token of this.cancelTokens) {
+			for (const token of this.outstandingRequests) {
 				if (token.promise === promise) {
 					token.controller.abort();
 				}
@@ -122,45 +104,6 @@ class ApiService {
 	}
 
 	/**
-	 * Build a URL from the given endpoint
-	 * @param {String} endpoint  The Sharpr API endpoint such as /posts/123
-	 * @return {String}  A URL suitable for fetch
-	 */
-	getUrl(endpoint) {
-		// URL is already a full URL
-		if (/^https?:\/\//i.test(endpoint)) {
-			return endpoint;
-		}
-		const match = (endpoint || '').match(/^:?\/\/(.+)/);
-		if (match) {
-			return `http://${match[1]}`;
-		}
-		// construct using api base url
-		let version = 'v2';
-		endpoint = endpoint.replace(/^(?:\/?api)?\/(v\d+)\//, ($0, $1) => {
-			version = $1;
-			return '/';
-		});
-		return `/api/${version}${endpoint}`;
-	}
-
-	/**
-	 * Convert object to search param string (parameters are alphabetized)
-	 * Note: there is no special handling for nested objects or arrays
-	 * @param {Object} object  The search param object to serialize
-	 * @returns {String}
-	 */
-	getQueryString(params) {
-		const searchParams = new URLSearchParams(params);
-		searchParams.sort();
-		const searchString = searchParams.toString();
-		if (searchString) {
-			return '?' + searchString.replace(/\+/g, '%20');
-		}
-		return '';
-	}
-
-	/**
 	 * Make an HTTP request
 	 * @param {String} method  GET, POST, DELETE, etc.
 	 * @param {String} endpoint  The name of the API endpoint such as /posts/123
@@ -169,159 +112,188 @@ class ApiService {
 	 * @return {Promise<ApiResponse | ApiError>}
 	 */
 	request(method, endpoint, paramsOrData = {}, kyOverrides = {}) {
-		// ensure method is upper case
-		method = method.toUpperCase();
-		// ensure we have at least empty headers for our interceptors to work with
-		if (!kyOverrides.headers) {
-			kyOverrides.headers = {};
-		}
-		// construct URL
-		let json, searchParams;
-		let url = this.getUrl(endpoint);
-		// get URL params or payload
-		// see https://github.com/sindresorhus/ky#api
-		if (method === 'GET') {
-			if (!isEmpty(paramsOrData)) {
-				searchParams = paramsOrData;
-			}
+		let params, data;
+		if (/^get$/i.test(method)) {
+			params = paramsOrData;
 		} else {
-			json = paramsOrData;
+			data = paramsOrData;
 		}
+		const request = new ApiRequest(method, endpoint, params, data, kyOverrides);
 		// return cached promise if available
-		let cached = this.cache.find(method, url, searchParams);
+		let cached = this.cache.find(request);
 		if (cached) {
 			return cached.promise;
 		}
-		// handle cancellation
-		const controller = new AbortController();
-		const { signal } = controller;
-		const cancelToken = { method, endpoint, controller };
-		this.cancelTokens.push(cancelToken);
-		const discardCancelToken = () => {
-			this.cancelTokens = this.cancelTokens.filter(
-				token => token.controller === controller
-			);
-		};
-		// disable retry
-		const retry = { limit: 0 };
-		// non 2xx codes should go into the promise rejection
-		const throwHttpErrors = true;
-		// timeout after 5 minutes
-		const timeout = 5 * 60 * 1000;
-		// all params
-		const request = {
-			// we add this URL so that interceptors can alter the URL
-			url,
-			// see https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/fetch#Syntax
-			method,
-			signal,
-			retry,
-			timeout,
-			// see https://github.com/sindresorhus/ky#api
-			json,
-			searchParams,
-			throwHttpErrors,
-			// additional items like header and any values to override the above
-			...kyOverrides,
-		};
+		this.pendingRequests.push(request);
 		this.interceptors.request.forEach(interceptor => {
-			interceptor({
-				endpoint,
-				request,
-				abortController: controller,
-				api: this,
-			});
+			interceptor(request, this);
 		});
-		// initiate request
-		const kyPromise = ky(request.url, request);
-		kyPromise.then(discardCancelToken, discardCancelToken);
+		const removePending = () => {
+			const idx = this.pendingRequests.indexOf(request);
+			if (idx > -1) {
+				this.pendingRequests.splice(idx, 1);
+			}
+		};
+		const kyPromise = request.send();
+		kyPromise.then(removePending, removePending);
 		const promise = kyPromise.then(
-			this._getSuccessHandler(endpoint, request),
-			this._getErrorHandler(endpoint, request)
+			this._getSuccessHandler(request),
+			this._getErrorHandler(request)
 		);
-		promise.finally(() => {
-			promise.abort = () => {};
-		});
-		cancelToken.promise = promise;
-		promise.abort = () => controller.abort();
-		// populate cache if specified
-		if (kyOverrides.cacheFor) {
-			this.cache.add(promise, method, url, searchParams, kyOverrides.cacheFor);
+		promise.abort = () => request.abort();
+		if (request.options.cacheFor) {
+			this.cache.add(request);
 		}
 		return promise;
+
+		// // ensure method is upper case
+		// method = method.toUpperCase();
+		// // ensure we have at least empty headers for our interceptors to work with
+		// if (!kyOverrides.headers) {
+		// 	kyOverrides.headers = {};
+		// }
+		// // construct URL
+		// let json, searchParams;
+		// let url = this.getUrl(endpoint);
+		// // get URL params or payload
+		// // see https://github.com/sindresorhus/ky#api
+		// if (method === 'GET') {
+		// 	if (!isEmpty(paramsOrData)) {
+		// 		searchParams = paramsOrData;
+		// 	}
+		// } else {
+		// 	json = paramsOrData;
+		// }
+		// // return cached promise if available
+		// let cached = this.cache.find(method, url, searchParams);
+		// if (cached) {
+		// 	return cached.promise;
+		// }
+		// handle cancellation
+		// const controller = new AbortController();
+		// const { signal } = controller;
+		// const cancelToken = { method, endpoint, controller };
+		// this.cancelTokens.push(cancelToken);
+		// const discardCancelToken = () => {
+		// 	this.cancelTokens = this.cancelTokens.filter(
+		// 		token => token.controller === controller
+		// 	);
+		// };
+		// // disable retry
+		// const retry = { limit: 0 };
+		// // non 2xx codes should go into the promise rejection
+		// const throwHttpErrors = true;
+		// // timeout after 5 minutes
+		// const timeout = 5 * 60 * 1000;
+		// // all params
+		// const request = {
+		// 	// we add this URL so that interceptors can alter the URL
+		// 	url,
+		// 	// see https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/fetch#Syntax
+		// 	method,
+		// 	signal,
+		// 	retry,
+		// 	timeout,
+		// 	// see https://github.com/sindresorhus/ky#api
+		// 	json,
+		// 	searchParams,
+		// 	throwHttpErrors,
+		// 	// additional items like header and any values to override the above
+		// 	...kyOverrides,
+		// };
+		// this.interceptors.request.forEach(interceptor => {
+		// 	interceptor({
+		// 		endpoint,
+		// 		request,
+		// 		abortController: controller,
+		// 		api: this,
+		// 	});
+		// });
+		// initiate request
+		// const kyPromise = ky(request.url, request);
+		// kyPromise.then(discardCancelToken, discardCancelToken);
+		// const promise = kyPromise.then(
+		// 	this._getSuccessHandler(endpoint, request),
+		// 	this._getErrorHandler(endpoint, request)
+		// );
+		// promise.finally(() => {
+		// 	promise.abort = () => {};
+		// });
+		// cancelToken.promise = promise;
+		// promise.abort = () => controller.abort();
+		// populate cache if specified
+		// if (kyOverrides.cacheFor) {
+		// 	this.cache.add(promise, method, url, searchParams, kyOverrides.cacheFor);
+		// }
+		// return promise;
 	}
 
 	/**
 	 * Get a function to call on promise resolution
-	 * @param {String} endpoint  The endpoint or URL
-	 * @param {Object} request  The request object
+	 * @param {ApiRequest} request  The request object
 	 * @returns {function(*=): ApiResponse}
 	 * @private
 	 */
-	_getSuccessHandler(endpoint, request) {
-		return async response => {
-			const { type, data, text } = await this._readResponseData(response);
-			const apiResponse = new ApiResponse({
-				endpoint,
+	_getSuccessHandler(request) {
+		return async rawResponse => {
+			const { type, data, text } = await this._readResponseData(rawResponse);
+			const response = new ApiResponse({
 				request,
-				response,
+				response: rawResponse,
 				type,
 				data,
 				text,
 			});
 			this.interceptors.response.forEach(interceptor => {
-				interceptor({ endpoint, request, response: apiResponse, api: this });
+				interceptor(request, response, this);
 			});
-			return apiResponse;
+			return response;
 		};
 	}
 
 	/**
 	 * Get a handler for promise rejection for the given endpoint and request
-	 * @param {String} endpoint  The endpoint or URL
-	 * @param {Object} request  The request object
+	 * @param {ApiRequest} request  The request object
 	 * @returns {Function}
 	 * @private
 	 */
-	_getErrorHandler(endpoint, request) {
+	_getErrorHandler(request) {
 		return error => {
 			if (error.type === 'aborted') {
 				// console.log('*********handling abort!:', error);
 				// aborted by the user
-				return Promise.reject(this._handleAborted(error, endpoint, request));
-			} else if (error instanceof HTTPError) {
+				return Promise.reject(this._handleAborted(request, error));
+			} else if (error instanceof global.HTTPError) {
 				// console.log('*********handling error!:', error);
 				// a non 2xx status code
-				return this._handleHttpError(error, endpoint, request).then(
+				return this._handleHttpError(request, error).then(
 					apiError => Promise.reject(apiError),
 					shouldNeverHappen => shouldNeverHappen
 				);
-			} else if (error instanceof TimeoutError) {
+			} else if (error instanceof global.TimeoutError) {
 				// endpoint took too long to return
-				return Promise.reject(this._handleTimeout(error, endpoint, request));
+				return Promise.reject(this._handleTimeout(request, error));
 			} else if (
 				error instanceof TypeError ||
 				error instanceof ReferenceError
 			) {
 				throw error;
 			}
-			return Promise.reject(this._handleOtherError(error, endpoint, request));
+			return Promise.reject(this._handleOtherError(request, error));
 		};
 	}
 
 	/**
 	 * Handle a response from an HTTP Error
+	 * @param {ApiRequest} request  The request object
 	 * @param {Error} error  The JavaScript Error object
-	 * @param {String} endpoint  The endpoint or URL
-	 * @param {Object} request  The request object
 	 * @returns {ApiError}
 	 * @private
 	 */
-	async _handleHttpError(error, endpoint, request) {
+	async _handleHttpError(request, error) {
 		const { type, data, text } = await this._readResponseData(error.response);
-		const apiError = new ApiError({
+		const response = new ApiError({
 			error,
-			endpoint,
 			request,
 			response: error.response,
 			type,
@@ -329,60 +301,57 @@ class ApiService {
 			text,
 		});
 		this.interceptors.error.forEach(interceptor => {
-			interceptor({ error, endpoint, request, response: apiError, api: this });
+			interceptor(request, response, this);
 		});
-		return apiError;
+		return response;
 	}
 
 	/**
 	 * Handle a response from an HTTP timeout
+	 * @param {ApiRequest} request  The request object
 	 * @param {Error} error  The JavaScript Error object
-	 * @param {String} endpoint  The endpoint or URL
-	 * @param {Object} request  The request object
 	 * @returns {ApiError}
 	 * @private
 	 */
-	_handleTimeout(error, endpoint, request) {
+	_handleTimeout(request, error) {
 		error.type = 'timeout';
-		const apiError = new ApiError({ error, endpoint, request });
+		const response = new ApiError(request, error);
 		this.interceptors.timeout.forEach(interceptor => {
-			interceptor({ error, endpoint, request, response: apiError, api: this });
+			interceptor(request, response, this);
 		});
-		return apiError;
+		return response;
 	}
 
 	/**
 	 * Handle a response from a user-triggered abort
-	 * @param {Error} error  The JavaScript Error object
+	 * @param {ApiRequest} request  The request object
 	 * @param {String} endpoint  The endpoint or URL
-	 * @param {Object} request  The request object
 	 * @returns {ApiError}
 	 * @private
 	 */
-	_handleAborted(error, endpoint, request) {
+	_handleAborted(request, error) {
 		// AbortError { type: 'aborted', message: 'The user aborted a request.' }
-		const apiError = new ApiError({ error, endpoint, request });
+		const response = new ApiError(request, error);
 		this.interceptors.abort.forEach(interceptor => {
-			interceptor({ error, endpoint, request, response: apiError, api: this });
+			interceptor(request, response, this);
 		});
-		return apiError;
+		return response;
 	}
 
 	/**
 	 * Handle a response from an other error (e.g. invalid URL)
+	 * @param {ApiRequest} request  The request object
 	 * @param {Error} error  The JavaScript Error object
-	 * @param {String} endpoint  The endpoint or URL
-	 * @param {Object} request  The request object
 	 * @returns {ApiError}
 	 * @private
 	 */
-	_handleOtherError(error, endpoint, request) {
+	_handleOtherError(request, error) {
 		// FetchError { 'messsage': 'request to ... failed, reason: getaddrinfo ENOTFOUND ...' }
-		const apiError = new ApiError({ error, endpoint, request });
+		const response = new ApiError(request, error);
 		this.interceptors.error.forEach(interceptor => {
-			interceptor({ error, endpoint, request, response: apiError, api: this });
+			interceptor(request, response, this);
 		});
-		return apiError;
+		return response;
 	}
 
 	/**

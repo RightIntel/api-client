@@ -6,10 +6,6 @@ const isEmptyObject = require('lodash/isEmpty');
  */
 class ApiResponse {
 	/**
-	 * @var {String} endpoint  The endpoint or URL that was requested
-	 */
-
-	/**
 	 * @var {Object} request  The request parameters that were passed to ky
 	 */
 
@@ -28,22 +24,19 @@ class ApiResponse {
 	/**
 	 * Initialize a response with the given data
 	 * @param {Object} init
-	 * @property {String} endpoint  The endpoint or URL that was requested
-	 * @property {Object} request  The request parameters that were passed to ky
+	 * @property {ApiRequest} request  The request that called ky
 	 * @property {Response} response  The raw fetch response
 	 * @property {String|null} type  Either json, text or null depending on type of data returned
 	 * @property {*|null} data  JSON data returned by the endpoint (usually Array or Object)
 	 * @property {String|null} text  Text data returned by the endpoint
 	 */
 	constructor({
-		endpoint,
 		request,
 		response = null,
 		type = null,
 		data = null,
 		text = null,
 	}) {
-		this.endpoint = endpoint;
 		this.request = request;
 		if (!response) {
 			response = {};

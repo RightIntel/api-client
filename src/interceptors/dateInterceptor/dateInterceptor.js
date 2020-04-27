@@ -19,11 +19,11 @@ module.exports = dateInterceptor;
 // Transform all requests and responses
 // to convert date values to and from UTC time
 function request({ request }) {
-	if (request.searchParams) {
-		mapToUtc(request.searchParams);
+	if (request.params) {
+		mapToUtc(request.params);
 	}
-	if (request.json) {
-		mapToUtc(request.json);
+	if (request.data) {
+		mapToUtc(request.data);
 	}
 }
 function response({ response }) {
@@ -66,6 +66,13 @@ function toUtc(dateStr) {
 // recursively iterate an object or array
 // and convert dates to UTC as needed (for the server)
 function mapToUtc(objOrArray) {
+	if (objOrArray instanceof URLSearchParams) {
+		for (const [key, value] of objOrArray.entries()) {
+			if (isDateField(key) && isDateFormat(value)) {
+				objOrArray.set(key, toUtc(value));
+			}
+		}
+	}
 	forEach(objOrArray, (value, key) => {
 		if (typeof value === 'object') {
 			// object or array
