@@ -99,7 +99,6 @@ describe('ApiCache add() function', () => {
 		cache.add(new ApiRequest('get', '/abc'), {});
 		cache.add(new ApiRequest('get', '/abc'), {});
 		cache.add(new ApiRequest('get', '/def'), {});
-		console.log('ENDPOINTS:' + cache.entries.map(e => e.request.endpoint));
 		cache.clear('get', '/abc');
 		expect(cache.entries).toHaveLength(1);
 	});

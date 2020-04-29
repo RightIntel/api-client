@@ -5,6 +5,7 @@ const ApiError = require('../Error/ApiError.js');
 const ApiRequest = require('../Request/ApiRequest.js');
 const ApiCache = require('../Cache/ApiCache.js');
 const ApiResponse = require('../Response/ApiResponse.js');
+const ky = require('../ky/ky.js');
 
 class ApiService {
 	/**
@@ -183,14 +184,14 @@ class ApiService {
 				// console.log('*********handling abort!:', error);
 				// aborted by the user
 				return Promise.reject(this._handleAborted(request, error));
-			} else if (error instanceof global.HTTPError) {
+			} else if (error instanceof ky.HTTPError) {
 				// console.log('*********handling error!:', error);
 				// a non 2xx status code
 				return this._handleHttpError(request, error).then(
 					apiError => Promise.reject(apiError),
 					shouldNeverHappen => shouldNeverHappen
 				);
-			} else if (error instanceof global.TimeoutError) {
+			} else if (error instanceof ky.TimeoutError) {
 				// endpoint took too long to return
 				return Promise.reject(this._handleTimeout(request, error));
 			} else if (

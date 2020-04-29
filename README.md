@@ -20,6 +20,7 @@ Similar to our Angular ApiProvider but more intuitive. Target uses include:
 - [Aborting Requests](#aborting-requests)
 - [Caching](#caching)
 - [Interceptors](#interceptors)
+- [APIRequest](#apirequest)
 
 ## Request API
 
@@ -292,21 +293,36 @@ const result2 = api.get('/abc', { d: 4 }, { cacheFor: '2h' });
 
 ## Interceptors
 
-`request` interceptors receive an object with the following props:
+- `request` interceptors receive an ApiRequest object:
+- `response` interceptors receive an ApiRequest and ApiResponse object:
+- `error`, `timeout` and `abort` interceptors receive an ApiRequest an ApiError object:
 
-- endpoint {String} The endpoint string as it was passed in
-- request {Object} Request options to pass to ky
-- abortController {AbortController} Call .cancel() to abort request
+```js
+api.addInterceptor({
+	request: (request, api) => {},
+	response: (request, response, api) => {},
+	error: (request, error, api) => {},
+	timeout: (request, error, api) => {},
+	abort: (request, error, api) => {},
+});
+```
 
-`response` interceptors receive an object with the following props:
+## ApiRequest
 
-- endpoint {String} The endpoint string as it was passed in
-- request {Object} Request options that were passed to ky
-- response {ApiResponse} The final response
+| Property      | Type    | Description                                 | Examples                        |
+| ------------- | ------- | ------------------------------------------- | ------------------------------- |
+| `method`      | String  | The HTTP verb uppercase                     | GET, POST                       |
+| `endpoint`    | String  | The Sharpr endpoint                         | /v3/users/me                    |
+| `params`      | Object  | The params to send in the URL               | `{a: '1'}`                      |
+| `data`        | Object  | The payload to be sent                      | `{ a: 1 }`                      |
+| `options`     | Object  | The ky and caching options                  | `{ cacheFor: '15m' }`           |
+| `headers`     | Headers | Headers to be sent                          | `new Headers({ a: '1'})`        |
+| `queryString` | String  | The URL query string based on `params`      | a=1&b=2                         |
+| `url`         | String  | The full URL to be sent                     | https://example.com/abc?a=1&b=2 |
+| `pending`     | Boolean | True when request started but not completed | false                           |
+| `completed`   | Boolean | True when request has completed             | true                            |
 
-`error` interceptors receive an object with the following props:
-
-- error {Error} The HTTPError or TimeoutError
-- endpoint {String} The endpoint string as it was passed in
-- request {Object} Request options that were passed to ky
-- response {ApiError} The final response
+| Method    | Returns | Description             |
+| --------- | ------- | ----------------------- |
+| `abort()` | void    | Abort a pending request |
+| `send()`  | Promise | A promise from ky       |

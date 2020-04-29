@@ -15,23 +15,28 @@ describe('ApiRequest method getter/setter', () => {
 describe('ApiRequest header getter/setter', () => {
 	it('should keep an object', () => {
 		const request = new ApiRequest();
-		request.headers = { a: '1' };
-		expect(request.headers).toEqual({ a: '1' });
+		request.headers = { a: 1 };
+		expect(request.headers).toBeInstanceOf(Headers);
+		expect(request.headers.get('A')).toBe('1');
+		expect([...request.headers.entries()]).toEqual([['a', '1']]);
 	});
 	it('should accept a Headers object', () => {
 		const request = new ApiRequest();
 		request.headers = new Headers({ a: '1' });
-		expect(request.headers).toEqual({ a: '1' });
+		expect(request.headers).toBeInstanceOf(Headers);
+		expect(request.headers.get('A')).toBe('1');
 	});
 	it('should accept an entries-type array', () => {
 		const request = new ApiRequest();
 		request.headers = [['a', '1']];
-		expect(request.headers).toEqual({ a: '1' });
+		expect(request.headers).toBeInstanceOf(Headers);
+		expect(request.headers.get('A')).toBe('1');
 	});
-	it('should accept an entries-type array', () => {
+	it('should allow setting headers', () => {
 		const request = new ApiRequest();
-		request.headers.a = '1';
-		expect(request.headers).toEqual({ a: '1' });
+		request.headers.set('a', '1');
+		expect(request.headers).toBeInstanceOf(Headers);
+		expect(request.headers.get('A')).toBe('1');
 	});
 });
 
@@ -153,6 +158,15 @@ describe('ApiRequest url getter/setter', () => {
 		request.endpoint = '/posts';
 		expect(request.url).toBe('/api/v2/posts');
 	});
+	it('should handle when endpoint is falsy', () => {
+		const request = new ApiRequest();
+		request.endpoint = false;
+		expect(request.url).toBe('');
+	});
+	it('should allow setting string params and object params', () => {
+		const request = new ApiRequest('get', '/abc?b=2', { a: '1' });
+		expect(request.url).toMatch(/\/abc\?a=1&b=2/);
+	});
 });
 
 describe('ApiRequest send', () => {
@@ -184,5 +198,12 @@ describe('ApiRequest abort', () => {
 			expect(error).toBeInstanceOf(Error);
 			expect(request.pending).toBe(false);
 		}
+	});
+	it('should not error if request was never sent', async () => {
+		const request = new ApiRequest('get', 'https://httpbin.org/get', {
+			a: '1',
+		});
+		request.abort();
+		expect(request.pending).toBe(false);
 	});
 });

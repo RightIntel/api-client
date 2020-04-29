@@ -1,23 +1,8 @@
-let ky;
-const isNode =
-	typeof process !== 'undefined' && process.versions && process.versions.node;
-/* istanbul ignore next */
-if (isNode) {
-	// node/jest using shimmed fetch()
-	ky = require('ky-universal');
-} else {
-	// browser using native fetch()
-	ky = require('ky');
-	if (typeof ky !== 'function') {
-		ky = ky.default;
-	}
-}
+const isEmpty = require('lodash/isEmpty.js');
+const ky = require('../ky/ky.js');
 
 class ApiRequest {
 	constructor(method, endpoint, params = {}, data = undefined, options = {}) {
-		// initialize empty values
-		this._params = {};
-		this._headers = {};
 		// save passed values
 		this._method = method;
 		this.endpoint = endpoint;
@@ -25,9 +10,10 @@ class ApiRequest {
 		this.data = data;
 		const { headers, ...optionsNoHeaders } = options;
 		this.options = optionsNoHeaders;
-		this.headers = headers;
-		this.abortController = new AbortController();
+		this.headers = headers || {};
+		this._abortController = new AbortController();
 		this.pending = false;
+		this.completed = false;
 		this._markComplete = this._markComplete.bind(this);
 	}
 	get method() {
@@ -51,12 +37,7 @@ class ApiRequest {
 		return this._headers;
 	}
 	set headers(newHeaders) {
-		const h = new Headers(newHeaders);
-		const headers = {};
-		for (const [key, value] of h.entries()) {
-			headers[key] = value;
-		}
-		this._headers = headers;
+		this._headers = new Headers(newHeaders);
 	}
 	get queryString() {
 		// URLSearchParams accepts string, object or another URLSearchParams object
@@ -71,11 +52,14 @@ class ApiRequest {
 		if (this.endpoint instanceof URL) {
 			return this._maybeAddQueryString(this.endpoint.toString());
 		}
+		if (typeof this.endpoint !== 'string') {
+			return '';
+		}
 		// URL is already a full URL
 		if (/^https?:\/\//i.test(this.endpoint)) {
 			return this._maybeAddQueryString(this.endpoint);
 		}
-		const match = (this.endpoint || '').match(/^:?\/\/(.+)/);
+		const match = this.endpoint.match(/^:?\/\/(.+)/);
 		if (match) {
 			/* istanbul ignore next */
 			const protocol =
@@ -95,27 +79,36 @@ class ApiRequest {
 		);
 		return this._maybeAddQueryString(`/api/${version}${endpoint}`);
 	}
-	_maybeAddQueryString(value) {
-		let suffix = '';
-		if (this._params && !value.includes('?')) {
-			const qs = this.queryString;
-			suffix = qs ? `?${qs}` : '';
+	_maybeAddQueryString(url) {
+		if (isEmpty(this._params)) {
+			return url;
 		}
-		return value + suffix;
+		const match = url.match(/(.+)\?([^#]+)(#.*|)$/);
+		if (match) {
+			const urlParams = new URLSearchParams(match[2]);
+			const objParams = new URLSearchParams(this._params);
+			for (const [key, value] of objParams) {
+				urlParams.append(key, value);
+			}
+			urlParams.sort();
+			const qs = urlParams.toString().replace(/\+/g, '%20');
+			return `${match[1]}?${qs}${match[3]}`;
+		}
+		return `${url}?${this.queryString}`;
 	}
 	set url(newUrl) {
 		this.endpoint = newUrl;
 	}
 	abort() {
 		if (this.pending) {
-			this.abortController.abort();
+			this._abortController.abort();
 		}
 	}
 	send() {
 		const request = {
 			method: this.method,
 			headers: this.headers,
-			signal: this.abortController.signal,
+			signal: this._abortController.signal,
 			retry: { limit: 0 },
 			throwHttpErrors: true,
 			timeout: 5 * 60 * 1000,
@@ -129,6 +122,7 @@ class ApiRequest {
 	}
 	_markComplete() {
 		this.pending = false;
+		this.completed = true;
 	}
 }
 
