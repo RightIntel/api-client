@@ -1,6 +1,8 @@
 const ApiService = require('./ApiService.js');
+const ApiRequest = require('../Request/ApiRequest.js');
 const ApiResponse = require('../Response/ApiResponse.js');
 const ApiError = require('../Error/ApiError.js');
+const ky = require('../ky/ky.js');
 
 describe('ApiService class', () => {
 	it('should be instantiable', () => {
@@ -45,15 +47,14 @@ describe('ApiService get() function', () => {
 	});
 });
 
-// TODO: figure out why these tests pass in isolation but not together
-xdescribe('ApiService errors', () => {
+describe('ApiService errors', () => {
 	it('should promise an ApiError object', async () => {
 		const api = new ApiService();
 		try {
 			await api.get('https://httpbin.org/status/500');
 		} catch (rejection) {
 			expect(rejection).toBeInstanceOf(ApiError);
-			expect(rejection.error).toBeInstanceOf(Error);
+			expect(rejection.error).toBeInstanceOf(ky.HTTPError);
 			expect(rejection.ok).toBe(false);
 			expect(rejection.status).toBe(500);
 			expect(rejection.text).toBe('');
@@ -88,9 +89,8 @@ xdescribe('ApiService errors', () => {
 			});
 		} catch (rejection) {
 			expect(rejection).toBeInstanceOf(ApiError);
-			expect(rejection.error).toBeTruthy();
-			expect(rejection.error.name).toBe('TimeoutError');
-			expect(rejection.error.type).toBe('timeout');
+			expect(rejection.error).toBeInstanceOf(ky.TimeoutError);
+			expect(rejection.ok).toBe(false);
 		}
 	});
 });
@@ -98,13 +98,13 @@ xdescribe('ApiService errors', () => {
 describe('ApiService interceptors', () => {
 	it('should handle a GET request interceptor with headers', async () => {
 		const api = new ApiService();
-		const incrementer = (request, passedApi) => {
+		const foobarHeader = (request, passedApi) => {
 			expect(passedApi).toBe(api);
-			request.headers.A = '1';
+			request.headers.set('Foobar', 'baz');
 		};
-		api.addInterceptor({ request: incrementer });
+		api.addInterceptor({ request: foobarHeader });
 		const response = await api.get('https://httpbin.org/get');
-		expect(response.data.headers.A).toBe('1');
+		expect(response.data.headers.Foobar).toEqual('baz');
 	});
 
 	it('should handle a GET request interceptor', async () => {
@@ -150,11 +150,45 @@ describe('ApiService interceptors', () => {
 		const response = await api.post('https://httpbin.org/post', { b: 2 });
 		expect(response.data.json.b).toBe(3);
 	});
+
+	it('should handle an error interceptor', async () => {
+		const api = new ApiService();
+		let req, res;
+		api.addInterceptor({
+			error: (request, response) => {
+				req = request;
+				res = response;
+			},
+		});
+		try {
+			await api.get('https://httpbin.org/status/500');
+		} catch (rejection) {
+			expect(req).toBeInstanceOf(ApiRequest);
+			expect(res).toBeInstanceOf(ApiError);
+		}
+	});
+
+	xit('should handle an abort interceptor', done => {
+		const api = new ApiService();
+		let req, res;
+		api.addInterceptor({
+			abort: (request, response) => {
+				req = request;
+				res = response;
+			},
+		});
+		const promise = api.get('https://httpbin.org/get?a=one');
+		promise.abort();
+		setTimeout(() => {
+			expect(req).toBeInstanceOf(ApiRequest);
+			expect(res).toBeInstanceOf(ApiError);
+			done();
+		}, 100);
+	});
 });
 
-// TODO: figure out why abort works correctly but tests fail (problem with setTimeout?)
-xdescribe('ApiService abort() function', () => {
-	xit('should abort by abort() method', done => {
+describe('ApiService abort() function', () => {
+	it('should abort by abort() method', done => {
 		const api = new ApiService();
 		let didResolve = false;
 		let rejection;
@@ -169,8 +203,6 @@ xdescribe('ApiService abort() function', () => {
 		setTimeout(() => {
 			expect(didResolve).toBe(false);
 			expect(rejection).toBeInstanceOf(ApiError);
-			expect(rejection.error).toBeTruthy();
-			expect(rejection.error.type).toBe('aborted');
 			done();
 		}, 100);
 	});
@@ -209,8 +241,6 @@ xdescribe('ApiService abort() function', () => {
 		setTimeout(() => {
 			expect(didResolve).toBe(false);
 			expect(rejection).toBeInstanceOf(ApiError);
-			expect(rejection.error).toBeTruthy();
-			expect(rejection.error.type).toBe('aborted');
 			done();
 		}, 100);
 	});
@@ -231,8 +261,6 @@ xdescribe('ApiService abort() function', () => {
 		setTimeout(() => {
 			expect(didResolve).toBe(false);
 			expect(rejection).toBeInstanceOf(ApiError);
-			expect(rejection.error).toBeTruthy();
-			expect(rejection.error.type).toBe('aborted');
 			done();
 		}, 100);
 	});
@@ -253,8 +281,6 @@ xdescribe('ApiService abort() function', () => {
 		setTimeout(() => {
 			expect(didResolve).toBe(false);
 			expect(rejection).toBeInstanceOf(ApiError);
-			expect(rejection.error).toBeTruthy();
-			expect(rejection.error.type).toBe('aborted');
 			done();
 		}, 100);
 	});
@@ -275,8 +301,6 @@ xdescribe('ApiService abort() function', () => {
 		setTimeout(() => {
 			expect(didResolve).toBe(false);
 			expect(rejection).toBeInstanceOf(ApiError);
-			expect(rejection.error).toBeTruthy();
-			expect(rejection.error.type).toBe('aborted');
 			done();
 		}, 100);
 	});

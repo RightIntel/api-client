@@ -77,9 +77,9 @@ class ApiService {
 		if (isPromise(methodOrPromise)) {
 			// cancel a specific request
 			const promise = methodOrPromise;
-			for (const token of this.outstandingRequests) {
-				if (token.promise === promise) {
-					token.controller.abort();
+			for (const item of this.pendingRequests) {
+				if (item.promise === promise) {
+					item.request.abort();
 				}
 				return 1;
 			}
@@ -89,19 +89,20 @@ class ApiService {
 		let matcher;
 		if (method && endpoint) {
 			// cancel all requests matching this verb and endpoint
-			matcher = token => method === token.method && endpoint === token.endpoint;
+			matcher = item =>
+				method === item.request.method && endpoint === item.request.endpoint;
 		} else if (method) {
 			// cancel all requests with this verb
-			matcher = token => method === token.method;
+			matcher = item => method === item.request.method;
 		} else if (endpoint) {
 			// cancel all requests to this endpoint
-			matcher = token => endpoint === token.endpoint;
+			matcher = item => endpoint === item.request.endpoint;
 		} else {
 			// cancel all requests
 			matcher = () => true;
 		}
-		const matching = this.cancelTokens.filter(matcher);
-		matching.forEach(token => token.controller.abort());
+		const matching = this.pendingRequests.filter(matcher);
+		matching.forEach(item => item.request.abort());
 		return matching.length;
 	}
 
@@ -126,7 +127,6 @@ class ApiService {
 		if (cached) {
 			return cached.promise;
 		}
-		this.pendingRequests.push(request);
 		this.interceptors.request.forEach(interceptor => {
 			interceptor(request, this);
 		});
@@ -146,6 +146,7 @@ class ApiService {
 		if (request.options.cacheFor) {
 			this.cache.add(request, promise);
 		}
+		this.pendingRequests.push({ request, promise });
 		return promise;
 	}
 
@@ -189,6 +190,7 @@ class ApiService {
 				// a non 2xx status code
 				return this._handleHttpError(request, error).then(
 					apiError => Promise.reject(apiError),
+					/* istanbul ignore next */
 					shouldNeverHappen => shouldNeverHappen
 				);
 			} else if (error instanceof ky.TimeoutError) {
@@ -235,8 +237,8 @@ class ApiService {
 	 * @private
 	 */
 	_handleTimeout(request, error) {
-		error.type = 'timeout';
-		const response = new ApiError(request, error);
+		// error.type = 'timeout';
+		const response = new ApiError({ error, request });
 		this.interceptors.timeout.forEach(interceptor => {
 			interceptor(request, response, this);
 		});
@@ -252,7 +254,7 @@ class ApiService {
 	 */
 	_handleAborted(request, error) {
 		// AbortError { type: 'aborted', message: 'The user aborted a request.' }
-		const response = new ApiError(request, error);
+		const response = new ApiError({ error, request });
 		this.interceptors.abort.forEach(interceptor => {
 			interceptor(request, response, this);
 		});
@@ -268,7 +270,7 @@ class ApiService {
 	 */
 	_handleOtherError(request, error) {
 		// FetchError { 'messsage': 'request to ... failed, reason: getaddrinfo ENOTFOUND ...' }
-		const response = new ApiError(request, error);
+		const response = new ApiError({ error, request });
 		this.interceptors.error.forEach(interceptor => {
 			interceptor(request, response, this);
 		});
