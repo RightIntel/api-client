@@ -44,6 +44,9 @@ class ApiResponse {
 		if (!response.headers) {
 			response.headers = new Headers();
 		}
+		for (const [name, value] of response.headers) {
+			response.headers[name.toLocaleLowerCase()] = value;
+		}
 		this._response = response;
 		this.type = type;
 		this.data = data;

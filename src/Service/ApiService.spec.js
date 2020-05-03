@@ -97,6 +97,7 @@ describe('ApiService errors', () => {
 
 describe('ApiService interceptors', () => {
 	it('should handle a GET request interceptor with headers', async () => {
+		expect.assertions(2);
 		const api = new ApiService();
 		const foobarHeader = (request, passedApi) => {
 			expect(passedApi).toBe(api);
@@ -120,6 +121,7 @@ describe('ApiService interceptors', () => {
 	});
 
 	it('should handle a GET response interceptor', async () => {
+		expect.assertions(2);
 		const api = new ApiService();
 		const incrementB = (request, response) => {
 			expect(request.params.b).toBe('2');
@@ -141,6 +143,7 @@ describe('ApiService interceptors', () => {
 	});
 
 	it('should handle a POST response interceptor', async () => {
+		expect.assertions(2);
 		const api = new ApiService();
 		const incrementB = (request, response) => {
 			expect(response.data.json.b).toBe(2);
@@ -152,6 +155,7 @@ describe('ApiService interceptors', () => {
 	});
 
 	it('should handle an error interceptor', async () => {
+		expect.assertions(2);
 		const api = new ApiService();
 		let req, res;
 		api.addInterceptor({
@@ -168,88 +172,71 @@ describe('ApiService interceptors', () => {
 		}
 	});
 
-	xit('should handle an abort interceptor', done => {
+	it('should handle an abort interceptor', done => {
+		expect.assertions(2);
 		const api = new ApiService();
-		let req, res;
 		api.addInterceptor({
 			abort: (request, response) => {
-				req = request;
-				res = response;
+				expect(request).toBeInstanceOf(ApiRequest);
+				expect(response).toBeInstanceOf(ApiError);
+				done();
 			},
 		});
 		const promise = api.get('https://httpbin.org/get?a=one');
+		promise.catch(() => {});
 		promise.abort();
-		setTimeout(() => {
-			expect(req).toBeInstanceOf(ApiRequest);
-			expect(res).toBeInstanceOf(ApiError);
-			done();
-		}, 100);
 	});
 });
 
 describe('ApiService abort() function', () => {
-	it('should abort by abort() method', done => {
+	it('should abort by abort() method', async () => {
+		expect.assertions(3);
 		const api = new ApiService();
-		let didResolve = false;
-		let rejection;
 		const promise = api.get('https://httpbin.org/get?a=1');
-		promise.then(
-			resp => {
-				didResolve = true;
-			},
-			err => (rejection = err)
-		);
+		expect(typeof promise.abort).toBe('function');
 		promise.abort();
-		setTimeout(() => {
-			expect(didResolve).toBe(false);
+		try {
+			await promise;
+		} catch (rejection) {
 			expect(rejection).toBeInstanceOf(ApiError);
-			done();
-		}, 100);
+			expect(rejection.error).toBeInstanceOf(Error);
+		}
 	});
 
-	it('should abort none', done => {
+	it('should abort none', async () => {
+		expect.assertions(2);
 		const api = new ApiService();
-		let didResolve = false;
-		const promise = api.get('https://httpbin.org/get?a=1');
-		promise.then(
-			resp => {
-				didResolve = true;
-			},
-			() => {}
-		);
+		const promise = api.get('https://httpbin.org/get?b=2');
 		const numAborted = api.abort('POST');
 		expect(numAborted).toBe(0);
-		promise.finally(() => {
-			expect(didResolve).toBe(true);
-			done();
-		});
+		try {
+			const res = await promise;
+			expect(res).toBeInstanceOf(ApiResponse);
+		} catch (e) {
+			expect(true).toBe(false);
+		}
 	});
 
-	it('should abort all', done => {
+	it('should abort all', async () => {
+		expect.assertions(2);
 		const api = new ApiService();
-		let didResolve = false;
-		let rejection;
-		const promise = api.get('https://httpbin.org/get?a=1');
-		promise.then(
-			resp => {
-				didResolve = true;
-			},
-			err => (rejection = err)
-		);
+		const promise = api.get('https://httpbin.org/get?c=3');
 		const numAborted = api.abort();
 		expect(numAborted).toBe(1);
-		setTimeout(() => {
-			expect(didResolve).toBe(false);
-			expect(rejection).toBeInstanceOf(ApiError);
+		try {
+			await promise;
+			expect(true).toBe(false);
 			done();
-		}, 100);
+		} catch (rejection) {
+			expect(rejection).toBeInstanceOf(ApiError);
+		}
 	});
 
 	it('should abort by verb', done => {
 		const api = new ApiService();
 		let didResolve = false;
 		let rejection;
-		const promise = api.get('https://httpbin.org/get?a=1');
+		const promise = api.get('https://httpbin.org/get?d=4');
 		promise.then(
 			resp => {
 				didResolve = true;
@@ -269,14 +256,14 @@ describe('ApiService abort() function', () => {
 		const api = new ApiService();
 		let didResolve = false;
 		let rejection;
-		const promise = api.get('https://httpbin.org/get?a=1');
+		const promise = api.get('https://httpbin.org/get?e=5');
 		promise.then(
 			resp => {
 				didResolve = true;
 			},
 			err => (rejection = err)
 		);
-		const numAborted = api.abort('GET', 'https://httpbin.org/get?a=1');
+		const numAborted = api.abort('GET', 'https://httpbin.org/get?e=5');
 		expect(numAborted).toBe(1);
 		setTimeout(() => {
 			expect(didResolve).toBe(false);
@@ -289,7 +276,7 @@ describe('ApiService abort() function', () => {
 		const api = new ApiService();
 		let didResolve = false;
 		let rejection;
-		const promise = api.get('https://httpbin.org/get?a=1');
+		const promise = api.get('https://httpbin.org/get?f=6');
 		promise.then(
 			resp => {
 				didResolve = true;
@@ -305,6 +292,7 @@ describe('ApiService abort() function', () => {
 		}, 100);
 	});
 });
+
 describe('ApiService caching', () => {
 	it('should return same promise', () => {
 		const api = new ApiService();

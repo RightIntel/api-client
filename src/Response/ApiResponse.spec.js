@@ -3,18 +3,17 @@ const ApiResponse = require('./ApiResponse.js');
 describe('ApiResponse instance', () => {
 	let response, headers, apiResp;
 	beforeEach(() => {
-		headers = {
-			'API-Total-Records': '57',
-			'API-Response-Time': '88',
-			'API-Response-Notices': JSON.stringify(['notice']),
-			'API-Response-Errors': JSON.stringify(['error']),
-			'Content-Length': '4096',
-			'Content-Type': 'application/json',
-			'API-New-Record-Id': '1234',
-			get: function (name) {
-				return this[name] || `Mock ${name}`;
-			},
-		};
+		headers = new Headers([
+			['API-Total-Records', '57'],
+			['API-Response-Time', '88'],
+			['API-Response-Notices', JSON.stringify(['notice'])],
+			['API-Response-Errors', JSON.stringify(['error'])],
+			['Content-Length', '4096'],
+			['Content-Type', 'application/json'],
+			['API-New-Record-Id', '1234'],
+			['Location', 'Mock Location'],
+			['API-Response-Id', 'Mock API-Response-Id'],
+		]);
 		response = {
 			ok: true,
 			status: 200,
@@ -107,12 +106,7 @@ describe('ApiResponse instance', () => {
 describe('ApiResponse newId from API-Record-Id', () => {
 	let response, headers, apiResp;
 	beforeEach(() => {
-		headers = {
-			'API-Record-Id': '1234',
-			get: function (name) {
-				return this[name] || false;
-			},
-		};
+		headers = new Headers([['API-Record-Id', '1234']]);
 		response = {
 			headers,
 		};
@@ -127,12 +121,7 @@ describe('ApiResponse newId from API-Record-Id', () => {
 describe('ApiResponse newId from Location', () => {
 	let response, headers, apiResp;
 	beforeEach(() => {
-		headers = {
-			Location: '/api/v2/posts/1234',
-			get: function (name) {
-				return this[name] || false;
-			},
-		};
+		headers = new Headers([['Location', '/api/v2/posts/1234']]);
 		response = {
 			headers,
 		};
@@ -147,12 +136,7 @@ describe('ApiResponse newId from Location', () => {
 describe('ApiResponse newId with UUID', () => {
 	let response, headers, apiResp;
 	beforeEach(() => {
-		headers = {
-			'API-New-Record-Id': 'my-uuid',
-			get: function (name) {
-				return this[name] || false;
-			},
-		};
+		headers = new Headers([['API-New-Record-Id', 'my-uuid']]);
 		response = {
 			headers,
 		};
@@ -167,11 +151,7 @@ describe('ApiResponse newId with UUID', () => {
 describe('ApiResponse newId with null', () => {
 	let response, headers, apiResp;
 	beforeEach(() => {
-		headers = {
-			get: function (name) {
-				return false;
-			},
-		};
+		headers = new Headers();
 		response = {
 			headers,
 		};
