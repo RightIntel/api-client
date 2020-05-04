@@ -116,7 +116,7 @@ class ApiService {
 	 */
 	request(method, endpoint, paramsOrData = {}, kyOverrides = {}) {
 		let params, data;
-		if (/^get$/i.test(method)) {
+		if (/^get|head$/i.test(method)) {
 			params = paramsOrData;
 		} else {
 			data = paramsOrData;
@@ -279,16 +279,13 @@ class ApiService {
 	/**
 	 * Given a fetch Response, get the json response or plain text
 	 * @param response
-	 * @returns {Promise<{data: null, text: null, type: null}|{data: *, text: *, type: *}>}
+	 * @returns {Promise}
 	 * @property {String|null}  The type of response (json, text, or null)
 	 * @property {*} data  The json data response
 	 * @property {String|null} text  The plain text response if valid json is not present
 	 * @private
 	 */
 	async _readResponseData(response) {
-		if (!response) {
-			return { type: null, data: null, text: null };
-		}
 		let result;
 		let type = (response.headers.get('Content-Type') || '').startsWith(
 			'application/json'
@@ -395,7 +392,8 @@ class ApiService {
 	 */
 	patchDifference(endpoint, oldValues, newValues, kyOverrides = {}) {
 		const diff = {};
-		for (const prop of newValues) {
+		for (const prop in newValues) {
+			/* istanbul ignore next */
 			if (!newValues.hasOwnProperty(prop)) {
 				continue;
 			}
@@ -442,10 +440,10 @@ class ApiService {
 					timeout = 30 * 60 * 1000
 				) => {
 					timer = setInterval(() => {
-						this.get(`/api_jobs/${jobId}`, { uuid: jobId }).then(data => {
-							if (data.completed_at) {
+						this.get(`/api_jobs/${jobId}`, { uuid: jobId }).then(response => {
+							if (response.data.completed_at) {
 								clearInterval(timer);
-								callback(data);
+								callback(response);
 							} else {
 								checkTimeout();
 							}

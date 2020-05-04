@@ -47,6 +47,79 @@ describe('ApiService get() function', () => {
 	});
 });
 
+describe('ApiService other named functions', () => {
+	/*
+	example response:
+
+	{
+		args: { c: '3', d: '4' },
+		headers: {
+			Accept: '* /*',
+			'Accept-Encoding': 'gzip,deflate',
+			Host: 'httpbin.org',
+			'User-Agent': 'node-fetch/1.0 (+https://github.com/bitinn/node-fetch)'
+		},
+		origin: '24.10.132.226, 24.10.132.226',
+		url: 'https://httpbin.org/get?c=3&d=4'
+	}
+
+	*/
+
+	it('should handle head', async () => {
+		const api = new ApiService();
+		const response = await api.head('https://httpbin.org/get?m=head');
+		expect(response).toBeInstanceOf(ApiResponse);
+		expect(response.ok).toBe(true);
+	});
+	it('should handle put', async () => {
+		const api = new ApiService();
+		const response = await api.put('https://httpbin.org/put?m=put');
+		expect(response).toBeInstanceOf(ApiResponse);
+		expect(response.ok).toBe(true);
+		expect(response.data.args.m).toBe('put');
+	});
+	it('should handle patch', async () => {
+		const api = new ApiService();
+		const response = await api.patch('https://httpbin.org/patch?m=patch');
+		expect(response).toBeInstanceOf(ApiResponse);
+		expect(response.ok).toBe(true);
+		expect(response.data.args.m).toBe('patch');
+	});
+	it('should handle delete', async () => {
+		const api = new ApiService();
+		const response = await api.delete('https://httpbin.org/delete?m=delete');
+		expect(response).toBeInstanceOf(ApiResponse);
+		expect(response.ok).toBe(true);
+		expect(response.data.args.m).toBe('delete');
+	});
+	it('should handle patchDifference', async () => {
+		const api = new ApiService();
+		const oldValues = { dept: 42, name: 'Jon' };
+		const newValues = { dept: 42, name: 'Jonathan' };
+		const response = await api.patchDifference(
+			'https://httpbin.org/patch',
+			oldValues,
+			newValues
+		);
+		expect(response.request.data).toEqual({ name: 'Jonathan' });
+		expect(response.ok).toBe(true);
+	});
+	it('should handle patchDifference with no difference', async () => {
+		const api = new ApiService();
+		const oldValues = { dept: 42, name: 'Jonathan' };
+		const newValues = { dept: 42, name: 'Jonathan' };
+		const response = await api.patchDifference(
+			'https://httpbin.org/patch',
+			oldValues,
+			newValues
+		);
+		// TODO: is this what we want to resolve?
+		// TODO: maybe we resolve with a ApiNoRequest object?
+		expect(response).toBe(null);
+	});
+	// TODO: submitJob using fetchmock
+});
+
 describe('ApiService errors', () => {
 	it('should promise an ApiError object', async () => {
 		const api = new ApiService();
@@ -96,7 +169,7 @@ describe('ApiService errors', () => {
 });
 
 describe('ApiService interceptors', () => {
-	it('should handle a GET request interceptor with headers', async () => {
+	it('should accept a GET request interceptor with headers', async () => {
 		expect.assertions(2);
 		const api = new ApiService();
 		const foobarHeader = (request, passedApi) => {
@@ -108,7 +181,7 @@ describe('ApiService interceptors', () => {
 		expect(response.data.headers.Foobar).toEqual('baz');
 	});
 
-	it('should handle a GET request interceptor', async () => {
+	it('should accept a GET request interceptor', async () => {
 		const api = new ApiService();
 		const incrementer = request => {
 			request.params.a++;
@@ -120,7 +193,7 @@ describe('ApiService interceptors', () => {
 		expect(response.data.args).toEqual({ a: '2' });
 	});
 
-	it('should handle a GET response interceptor', async () => {
+	it('should accept a GET response interceptor', async () => {
 		expect.assertions(2);
 		const api = new ApiService();
 		const incrementB = (request, response) => {
@@ -132,7 +205,7 @@ describe('ApiService interceptors', () => {
 		expect(response.data.args.b).toBe(3);
 	});
 
-	it('should handle a POST request interceptor', async () => {
+	it('should accept a POST request interceptor', async () => {
 		const api = new ApiService();
 		const incrementA = request => {
 			request.data.a++;
@@ -142,7 +215,7 @@ describe('ApiService interceptors', () => {
 		expect(response.data.json.a).toBe(2);
 	});
 
-	it('should handle a POST response interceptor', async () => {
+	it('should accept a POST response interceptor', async () => {
 		expect.assertions(2);
 		const api = new ApiService();
 		const incrementB = (request, response) => {
@@ -154,7 +227,7 @@ describe('ApiService interceptors', () => {
 		expect(response.data.json.b).toBe(3);
 	});
 
-	it('should handle an error interceptor', async () => {
+	it('should accept an error interceptor', async () => {
 		expect.assertions(2);
 		const api = new ApiService();
 		let req, res;
@@ -171,8 +244,8 @@ describe('ApiService interceptors', () => {
 			expect(res).toBeInstanceOf(ApiError);
 		}
 	});
-
-	it('should handle an abort interceptor', done => {
+	// TODO: use fetchmock to trigger error handler for other error
+	it('should accept an abort interceptor', done => {
 		expect.assertions(2);
 		const api = new ApiService();
 		api.addInterceptor({
@@ -185,6 +258,21 @@ describe('ApiService interceptors', () => {
 		const promise = api.get('https://httpbin.org/get?a=one');
 		promise.catch(() => {});
 		promise.abort();
+	});
+	it('should accept an timeout interceptor', done => {
+		expect.assertions(2);
+		const api = new ApiService();
+		api.addInterceptor({
+			timeout: (request, response) => {
+				expect(request).toBeInstanceOf(ApiRequest);
+				expect(response).toBeInstanceOf(ApiError);
+				done();
+			},
+		});
+		const promise = api.get('https://httpbin.org/delay/2', null, {
+			timeout: 1000,
+		});
+		promise.catch(() => {});
 	});
 });
 
