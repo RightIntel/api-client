@@ -14,7 +14,7 @@ describe('chunksInterceptor', () => {
 		const expected = {
 			Short: 'ab',
 		};
-		chunksInterceptor.request({ request });
+		chunksInterceptor.request(request);
 		expect(request.headers).toEqual(expected);
 	});
 
@@ -28,7 +28,7 @@ describe('chunksInterceptor', () => {
 			'Long-Chunk-0': new Array(8001).join('a'),
 			'Long-Chunk-1': 'a',
 		};
-		chunksInterceptor.request({ request });
+		chunksInterceptor.request(request);
 		expect(request.headers).toEqual(expected);
 	});
 
@@ -44,7 +44,7 @@ describe('chunksInterceptor', () => {
 			b: false,
 			c: 'three',
 		};
-		chunksInterceptor.request({ request });
+		chunksInterceptor.request(request);
 		request.headers.a = request.headers.a.toString();
 		expected.a = expected.a.toString();
 		expect(request.headers).toEqual(expected);

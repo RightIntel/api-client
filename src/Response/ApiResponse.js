@@ -41,15 +41,24 @@ class ApiResponse {
 		if (!response) {
 			response = {};
 		}
-		this.headers = {};
-		const headers = response.headers || new Headers();
-		for (const [name, value] of headers) {
-			this.headers[name.toLocaleLowerCase()] = value;
-		}
+		this._processHeaders(response.headers || {});
 		this._response = response;
 		this.type = type;
 		this.data = data;
 		this.text = text;
+	}
+
+	_processHeaders(headers = {}) {
+		this.headers = {};
+		if (headers instanceof Headers) {
+			for (const [name, value] of headers) {
+				this.headers[name.toLocaleLowerCase()] = value;
+			}
+		} else if (typeof headers === 'object') {
+			for (const name in headers) {
+				this.headers[name.toLocaleLowerCase()] = headers[name];
+			}
+		}
 	}
 
 	/**

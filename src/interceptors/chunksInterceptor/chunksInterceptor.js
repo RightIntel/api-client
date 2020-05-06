@@ -3,7 +3,7 @@ const chunkString = require('@shelf/fast-chunk-string');
 const chunksInterceptor = { request };
 module.exports = chunksInterceptor;
 
-function request({ request }) {
+function request(request) {
 	// Split long headers into chunks because Apache has a max of 8192 bytes per header
 	const headerMaxLength = 8000;
 	// (e.g. "Hubs" header can get really long for superadmins)

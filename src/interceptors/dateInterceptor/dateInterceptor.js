@@ -18,7 +18,7 @@ module.exports = dateInterceptor;
 
 // Transform all requests and responses
 // to convert date values to and from UTC time
-function request({ request }) {
+function request(request) {
 	if (request.params) {
 		mapToUtc(request.params);
 	}
@@ -26,7 +26,7 @@ function request({ request }) {
 		mapToUtc(request.data);
 	}
 }
-function response({ response }) {
+function response(response) {
 	mapFromUtc(response.data);
 }
 

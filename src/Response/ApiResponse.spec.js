@@ -58,7 +58,8 @@ describe('ApiResponse instance', () => {
 		expect(apiResp.statusClass).toBe('2xx');
 	});
 	it('should return headers', () => {
-		expect(apiResp.headers).toBe(headers);
+		expect(apiResp.headers).toBeInstanceOf(Object);
+		expect(apiResp.headers['api-total-records']).toBe('57');
 	});
 	it('should return total', () => {
 		expect(apiResp.total).toBe(57);
@@ -106,7 +107,7 @@ describe('ApiResponse instance', () => {
 describe('ApiResponse newId from API-Record-Id', () => {
 	let response, headers, apiResp;
 	beforeEach(() => {
-		headers = new Headers([['API-Record-Id', '1234']]);
+		headers = { 'API-Record-Id': '1234' };
 		response = {
 			headers,
 		};
@@ -121,7 +122,7 @@ describe('ApiResponse newId from API-Record-Id', () => {
 describe('ApiResponse newId from Location', () => {
 	let response, headers, apiResp;
 	beforeEach(() => {
-		headers = new Headers([['Location', '/api/v2/posts/1234']]);
+		headers = { Location: '/api/v2/posts/1234' };
 		response = {
 			headers,
 		};
@@ -136,7 +137,7 @@ describe('ApiResponse newId from Location', () => {
 describe('ApiResponse newId with UUID', () => {
 	let response, headers, apiResp;
 	beforeEach(() => {
-		headers = new Headers([['API-New-Record-Id', 'my-uuid']]);
+		headers = { 'API-New-Record-Id': 'my-uuid' };
 		response = {
 			headers,
 		};
@@ -151,7 +152,7 @@ describe('ApiResponse newId with UUID', () => {
 describe('ApiResponse newId with null', () => {
 	let response, headers, apiResp;
 	beforeEach(() => {
-		headers = new Headers();
+		headers = {};
 		response = {
 			headers,
 		};
@@ -161,16 +162,6 @@ describe('ApiResponse newId with null', () => {
 	});
 	it('should get newId with null', () => {
 		expect(apiResp.newId).toBe(null);
-	});
-});
-describe('ApiResponse with null response', () => {
-	let response, apiResp;
-	beforeEach(() => {
-		apiResp = new ApiResponse({});
-	});
-	it('should have Headers', () => {
-		expect(apiResp.rawResponse).toBeInstanceOf(Object);
-		expect(apiResp.rawResponse.headers).toBeInstanceOf(Headers);
 	});
 });
 describe('ApiResponse URL extraction', () => {

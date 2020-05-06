@@ -10,11 +10,22 @@ class ApiRequest {
 		this.data = data;
 		const { headers, ...optionsNoHeaders } = options;
 		this.options = optionsNoHeaders;
-		this.headers = headers || {};
+		this._processHeaders(headers);
 		this._abortController = new AbortController();
 		this.pending = false;
 		this.completed = false;
 		this._markComplete = this._markComplete.bind(this);
+	}
+	_processHeaders(headers = {}) {
+		this.headers = {};
+		if (headers instanceof Headers) {
+			this.headers = {};
+			for (const [name, value] of headers) {
+				this.headers[name] = value;
+			}
+		} else {
+			this.headers = headers;
+		}
 	}
 	get method() {
 		return this._method.toUpperCase();
@@ -32,15 +43,6 @@ class ApiRequest {
 			params[key] = value;
 		}
 		this._params = params;
-	}
-	get headers() {
-		return this._headers;
-	}
-	set headers(newHeaders) {
-		this._headers = {};
-		for (const [name, value] of new Headers(newHeaders)) {
-			this._headers[name.toLocaleLowerCase()] = value;
-		}
 	}
 	get queryString() {
 		// URLSearchParams accepts string, object or another URLSearchParams object

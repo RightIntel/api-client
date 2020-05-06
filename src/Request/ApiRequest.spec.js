@@ -15,28 +15,21 @@ describe('ApiRequest method getter/setter', () => {
 describe('ApiRequest header getter/setter', () => {
 	it('should keep an object', () => {
 		const request = new ApiRequest();
-		request.headers = { a: 1 };
-		expect(request.headers).toBeInstanceOf(Headers);
-		expect(request.headers.get('A')).toBe('1');
-		expect([...request.headers.entries()]).toEqual([['a', '1']]);
+		request.headers = { A: '1' };
+		expect(request.headers).toEqual({ A: '1' });
 	});
 	it('should accept a Headers object', () => {
-		const request = new ApiRequest();
-		request.headers = new Headers({ a: '1' });
-		expect(request.headers).toBeInstanceOf(Headers);
-		expect(request.headers.get('A')).toBe('1');
-	});
-	it('should accept an entries-type array', () => {
-		const request = new ApiRequest();
-		request.headers = [['a', '1']];
-		expect(request.headers).toBeInstanceOf(Headers);
-		expect(request.headers.get('A')).toBe('1');
+		const headers = new Headers([['A', '1']]);
+		const request = new ApiRequest('get', '/', {}, {}, { headers });
+		expect(request.headers).toBeInstanceOf(Object);
+		// note that Headers automatically normalizes header names to lower case
+		expect(request.headers).toEqual({ a: '1' });
 	});
 	it('should allow setting headers', () => {
 		const request = new ApiRequest();
-		request.headers.set('a', '1');
-		expect(request.headers).toBeInstanceOf(Headers);
-		expect(request.headers.get('A')).toBe('1');
+		request.headers.A = '1';
+		expect(request.headers).toBeInstanceOf(Object);
+		expect(request.headers.A).toBe('1');
 	});
 });
 

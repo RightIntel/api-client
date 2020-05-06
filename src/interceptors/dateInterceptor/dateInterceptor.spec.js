@@ -1,4 +1,6 @@
 const dateInterceptor = require('./dateInterceptor.js');
+const ApiRequest = require('../../Request/ApiRequest.js');
+const ApiResponse = require('../../Response/ApiResponse.js');
 const moment = require('moment');
 
 const zeropad = s => (s > 9 ? s : '0' + s);
@@ -78,23 +80,22 @@ describe('dateInterceptor requests', () => {
 			(offset > 0 ? '-' : '+') +
 			zeropad(offset) +
 			':00';
-		let request = {
-			data: {
-				created_at: time1,
-				start_date: time1,
-				level2: [
-					{
-						end_date: time1,
-						begin_date: time1,
-					},
-				],
-			},
-			params: {
-				created: time1,
-				last_login: time1,
-			},
+		const data = {
+			created_at: time1,
+			start_date: time1,
+			level2: [
+				{
+					end_date: time1,
+					begin_date: time1,
+				},
+			],
 		};
-		interceptor.request({ request });
+		const params = {
+			created: time1,
+			last_login: time1,
+		};
+		let request = new ApiRequest('get', '/', params, data);
+		interceptor.request(request);
 		expect(request.data.created_at).toBe(time1Offset);
 		expect(request.data.start_date).toBe(time1Offset);
 		expect(request.params.created).toBe(time1Offset);
@@ -105,13 +106,12 @@ describe('dateInterceptor requests', () => {
 
 	it('should not change dates with non-date keys', () => {
 		const time1 = '2016-06-01 12:00:00';
-		let request = {
-			data: { comment: time1 },
-			params: { search_text: time1 },
-		};
-		interceptor.request({ request });
-		expect(request.data.comment).toBe(time1);
+		const params = { search_text: time1 };
+		const data = { comment: time1 };
+		let request = new ApiRequest('get', '/', params, data);
+		interceptor.request(request);
 		expect(request.params.search_text).toBe(time1);
+		expect(request.data.comment).toBe(time1);
 	});
 
 	it('should handle URLSearchParams', () => {
@@ -122,39 +122,36 @@ describe('dateInterceptor requests', () => {
 			(offset > 0 ? '-' : '+') +
 			zeropad(offset) +
 			':00';
-		let request = {
-			params: new URLSearchParams({ created_at: time1 }),
-		};
-		interceptor.request({ request });
-		expect(request.params.get('created_at')).toBe(time1Offset);
+		const params = new URLSearchParams({ created_at: time1 });
+		let request = new ApiRequest('get', '/', params);
+		interceptor.request(request);
+		expect(request.params.created_at).toBe(time1Offset);
 	});
 
 	it('should not change plain dates', () => {
 		const day1 = '2016-06-01';
-		const request = {
-			data: { created_at: day1 },
-			params: { created: day1 },
-		};
-		interceptor.request({ request });
-		expect(request.data.created_at).toBe(day1);
+		const params = { created: day1 };
+		const data = { created_at: day1 };
+		let request = new ApiRequest('get', '/', params, data);
+		interceptor.request(request);
 		expect(request.params.created).toBe(day1);
+		expect(request.data.created_at).toBe(day1);
 	});
 
 	it('should not change invalid dates', () => {
-		const day1 = '9999-99-99 99:99:99';
-		const request = {
-			data: { created_at: day1 },
-			params: { created: day1 },
-		};
-		interceptor.request({ request });
-		expect(request.data.created_at).toBe(day1);
-		expect(request.params.created).toBe(day1);
+		const time1 = '9999-99-99 99:99:99';
+		const params = { created: time1 };
+		const data = { created_at: time1 };
+		let request = new ApiRequest('get', '/', params, data);
+		interceptor.request(request);
+		expect(request.params.created).toBe(time1);
+		expect(request.data.created_at).toBe(time1);
 	});
 
 	it('should do nothing if data and params is empty', () => {
-		const request = {};
-		interceptor.request({ request });
-		expect(request).toEqual({});
+		const request = new ApiRequest('get', '/');
+		interceptor.request(request);
+		expect(request.params).toEqual({});
 	});
 });
 
@@ -167,19 +164,21 @@ describe('dateInterceptor responses', () => {
 			.subtract(offset, 'minutes')
 			.format()
 			.replace(/Z$/, '');
-		const response = {
-			data: {
-				modified_at: time1Utc,
-				publish_date: time1Utc,
-				last_login: time1Utc,
-				level2: [
-					{
-						created: time1Utc,
-					},
-				],
-			},
+		const data = {
+			modified_at: time1Utc,
+			publish_date: time1Utc,
+			last_login: time1Utc,
+			level2: [
+				{
+					created: time1Utc,
+				},
+			],
 		};
-		interceptor.response({ response });
+		const response = new ApiResponse({
+			request: {},
+			data,
+		});
+		interceptor.response(response);
 		expect(response.data.modified_at).toBe(processedDate);
 		expect(response.data.publish_date).toBe(processedDate);
 		expect(response.data.last_login).toBe(processedDate);
@@ -194,7 +193,7 @@ describe('dateInterceptor responses', () => {
 				b: { created: day1 },
 			},
 		};
-		interceptor.response({ response });
+		interceptor.response(response);
 		expect(response.data.a.created_at).toBe(day1);
 		expect(response.data.b.created).toBe(day1);
 	});
