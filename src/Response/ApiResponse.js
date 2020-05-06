@@ -41,11 +41,10 @@ class ApiResponse {
 		if (!response) {
 			response = {};
 		}
-		if (!response.headers) {
-			response.headers = new Headers();
-		}
-		for (const [name, value] of response.headers) {
-			response.headers[name.toLocaleLowerCase()] = value;
+		this.headers = {};
+		const headers = response.headers || new Headers();
+		for (const [name, value] of headers) {
+			this.headers[name.toLocaleLowerCase()] = value;
 		}
 		this._response = response;
 		this.type = type;
@@ -90,18 +89,10 @@ class ApiResponse {
 	}
 
 	/**
-	 * @var {Headers} headers  The fetch response headers
-	 * @see https://developer.mozilla.org/en-US/docs/Web/API/Headers
-	 */
-	get headers() {
-		return this._response.headers;
-	}
-
-	/**
 	 * @var {Number|null} total  The total found rows (e.g. number of results if limit were not applied)
 	 */
 	get total() {
-		return parseFloat(this._response.headers.get('API-Total-Records')) || null;
+		return parseFloat(this.headers['api-total-records']) || null;
 	}
 
 	/**
@@ -147,60 +138,54 @@ class ApiResponse {
 	 * @var {Number} location  The value of the Location HTTP response header
 	 */
 	get location() {
-		return this._response.headers.get('Location');
+		return this.headers['location'];
 	}
 
 	/**
 	 * @var {Number} location  The value of the Content-Type HTTP response header
 	 */
 	get contentType() {
-		return this._response.headers.get('Content-Type');
+		return this.headers['content-type'];
 	}
 
 	/**
 	 * @var {Number} location  The value of the Content-Length HTTP response header
 	 */
 	get contentLength() {
-		return parseInt(this._response.headers.get('Content-Length'), 10);
+		return parseInt(this.headers['content-length'], 10);
 	}
 
 	/**
 	 * @var {Array} notices  Notices from the API
 	 */
 	get notices() {
-		return (
-			JSON.parse(this._response.headers.get('API-Response-Notices') || '[]') ||
-			[]
-		);
+		return JSON.parse(this.headers['api-response-notices'] || '[]') || [];
 	}
 
 	/**
 	 * @var {Array} errors  Errors from the API
 	 */
 	get errors() {
-		return (
-			JSON.parse(this._response.headers.get('API-Response-Errors') || '[]') ||
-			[]
-		);
+		return JSON.parse(this.headers['api-response-errors'] || '[]') || [];
 	}
 
 	/**
 	 * @var {String} responseId  The APIs response id UUID
 	 */
 	get responseId() {
-		return this._response.headers.get('API-Response-Id');
+		return this.headers['api-response-id'];
 	}
 
 	/**
 	 * @var {Number|String|null} newId  The id of the newly created record
 	 */
 	get newId() {
-		let id = this._response.headers.get('API-New-Record-Id');
+		let id = this.headers['api-new-record-id'];
 		if (!id) {
-			id = this._response.headers.get('API-Record-Id');
+			id = this.headers['api-record-id'];
 		}
 		if (!id) {
-			const location = this._response.headers.get('Location');
+			const location = this.headers['location'];
 			const match = String(location).match(/\/(\d+)$/);
 			id = match ? match[1] : null;
 		}
@@ -219,7 +204,7 @@ class ApiResponse {
 	 * @var {Number} time  The total time the API reported it took
 	 */
 	get time() {
-		return parseFloat(this._response.headers.get('API-Response-Time')) || 0;
+		return parseFloat(this.headers['api-response-time']) || 0;
 	}
 
 	/**

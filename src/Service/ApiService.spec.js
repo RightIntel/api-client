@@ -180,7 +180,7 @@ describe('ApiService interceptors', () => {
 		const api = new ApiService();
 		const foobarHeader = (request, passedApi) => {
 			expect(passedApi).toBe(api);
-			request.headers.set('Foobar', 'baz');
+			request.headers['Foobar'] = 'baz';
 		};
 		api.addInterceptor({ request: foobarHeader });
 		const response = await api.get('https://httpbin.org/get');

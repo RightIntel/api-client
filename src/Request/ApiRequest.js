@@ -37,7 +37,10 @@ class ApiRequest {
 		return this._headers;
 	}
 	set headers(newHeaders) {
-		this._headers = new Headers(newHeaders);
+		this._headers = {};
+		for (const [name, value] of new Headers(newHeaders)) {
+			this._headers[name.toLocaleLowerCase()] = value;
+		}
 	}
 	get queryString() {
 		// URLSearchParams accepts string, object or another URLSearchParams object
