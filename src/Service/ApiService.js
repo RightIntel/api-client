@@ -1,6 +1,5 @@
 const isEqual = require('lodash/isEqual');
 const isPromise = require('is-promise');
-const isEmpty = require('lodash/isEmpty');
 const ApiError = require('../Error/ApiError.js');
 const ApiRequest = require('../Request/ApiRequest.js');
 const ApiCache = require('../Cache/ApiCache.js');
@@ -390,8 +389,9 @@ class ApiService {
 	 * @returns {Promise}  Resolves with null if no change is needed
 	 *     or else the ApiResponse and rejects with ApiError
 	 */
-	patchDifference(endpoint, oldValues, newValues, kyOverrides = {}) {
+	async patchDifference(endpoint, oldValues, newValues, kyOverrides = {}) {
 		const diff = {};
+		let hasChanges = false;
 		for (const prop in newValues) {
 			/* istanbul ignore next */
 			if (!newValues.hasOwnProperty(prop)) {
@@ -399,12 +399,22 @@ class ApiService {
 			}
 			if (!isEqual(newValues[prop], oldValues[prop])) {
 				diff[prop] = newValues[prop];
+				hasChanges = true;
 			}
 		}
-		if (isEmpty(diff)) {
-			return Promise.resolve(null);
+		if (!hasChanges) {
+			return {
+				diff,
+				hasChanges,
+				response: null,
+			};
 		}
-		return this.request('PATCH', endpoint, diff, kyOverrides);
+		const response = await this.request('PATCH', endpoint, diff, kyOverrides);
+		return {
+			diff,
+			hasChanges,
+			response,
+		};
 	}
 
 	/**

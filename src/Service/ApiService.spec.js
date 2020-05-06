@@ -96,26 +96,32 @@ describe('ApiService other named functions', () => {
 		const api = new ApiService();
 		const oldValues = { dept: 42, name: 'Jon' };
 		const newValues = { dept: 42, name: 'Jonathan' };
-		const response = await api.patchDifference(
+		const result = await api.patchDifference(
 			'https://httpbin.org/patch',
 			oldValues,
 			newValues
 		);
-		expect(response.request.data).toEqual({ name: 'Jonathan' });
-		expect(response.ok).toBe(true);
+		expect(result.diff).toEqual({ name: 'Jonathan' });
+		expect(result.hasChanges).toEqual(true);
+		expect(result.response.request.data).toEqual({ name: 'Jonathan' });
+		expect(result.response.ok).toBe(true);
 	});
 	it('should handle patchDifference with no difference', async () => {
 		const api = new ApiService();
 		const oldValues = { dept: 42, name: 'Jonathan' };
 		const newValues = { dept: 42, name: 'Jonathan' };
-		const response = await api.patchDifference(
+		const result = await api.patchDifference(
 			'https://httpbin.org/patch',
 			oldValues,
 			newValues
 		);
 		// TODO: is this what we want to resolve?
 		// TODO: maybe we resolve with a ApiNoRequest object?
-		expect(response).toBe(null);
+		expect(result).toEqual({
+			diff: {},
+			hasChanges: false,
+			response: null,
+		});
 	});
 	// TODO: submitJob using fetchmock
 });
