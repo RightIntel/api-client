@@ -177,6 +177,7 @@ describe('dateInterceptor responses', () => {
 		const response = new ApiResponse({
 			request: {},
 			data,
+			type: 'json',
 		});
 		interceptor.response(response);
 		expect(response.data.modified_at).toBe(processedDate);
@@ -187,12 +188,14 @@ describe('dateInterceptor responses', () => {
 
 	it('should not change plain dates', () => {
 		const day1 = '2016-06-01';
-		const response = {
+		const response = new ApiResponse({
+			request: {},
 			data: {
 				a: { created_at: day1 },
 				b: { created: day1 },
 			},
-		};
+			type: 'json',
+		});
 		interceptor.response(response);
 		expect(response.data.a.created_at).toBe(day1);
 		expect(response.data.b.created).toBe(day1);
@@ -200,9 +203,11 @@ describe('dateInterceptor responses', () => {
 
 	it('should not change invalid dates', () => {
 		const day1 = '9999-99-99 99:99:99';
-		const response = {
+		const response = new ApiResponse({
+			request: {},
 			data: { created_at: day1 },
-		};
+			type: 'json',
+		});
 		interceptor.response({ response });
 		expect(response.data.created_at).toBe(day1);
 	});

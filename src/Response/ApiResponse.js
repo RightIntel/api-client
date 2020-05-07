@@ -6,11 +6,20 @@ const isEmptyObject = require('lodash/isEmpty');
  */
 class ApiResponse {
 	/**
-	 * @var {Object} request  The request parameters that were passed to ky
+	 * @var {ApiRequest} request  The ApiRequest that generated this response
 	 */
 
 	/**
-	 * @var {String|null} type  Either json, text or null depending on type of data returned
+	 * @var {Response} _response  The fetch Response object
+	 * @private
+	 */
+
+	/**
+	 * @var {Object} headers  The lower-case headers returned
+	 */
+
+	/**
+	 * @var {String|null} dataType  Either json, text or null depending on type of data returned
 	 */
 
 	/**
@@ -43,11 +52,16 @@ class ApiResponse {
 		}
 		this._processHeaders(response.headers || {});
 		this._response = response;
-		this.type = type;
+		this.dataType = type;
 		this.data = data;
 		this.text = text;
 	}
 
+	/**
+	 * Take response headers and convert to Object
+	 * @param {Object|Headers} [headers]  The headers
+	 * @private
+	 */
 	_processHeaders(headers = {}) {
 		this.headers = {};
 		if (headers instanceof Headers) {
@@ -62,7 +76,8 @@ class ApiResponse {
 	}
 
 	/**
-	 * @var {Response} rawResponse  The fetch response
+	 * The fetch response
+	 * @returns {Response}
 	 * @see https://developer.mozilla.org/en-US/docs/Web/API/Response
 	 */
 	get rawResponse() {
@@ -70,70 +85,119 @@ class ApiResponse {
 	}
 
 	/**
-	 * @var {Boolean} ok  True if http status is 2xx
+	 * The body stream
+	 * @returns {ReadableStream<Uint8Array>}
+	 */
+	get body() {
+		return this._response.body;
+	}
+
+	/**
+	 * True if stream has been read before
+	 * @returns {Boolean}
+	 */
+	get bodyUsed() {
+		return this._response.bodyUsed;
+	}
+
+	/**
+	 * True if there was a redirect before this response
+	 * @returns {Boolean}
+	 */
+	get redirected() {
+		return this._response.redirected;
+	}
+
+	/**
+	 * The HTTP type
+	 * @returns {String}  One of "basic" | "cors" | "default" | "error" | "opaque" | "opaqueredirect"
+	 */
+	get type() {
+		return this._response.type;
+	}
+
+	/**
+	 * The final URL of this response
+	 * @returns {String}
+	 */
+	get url() {
+		return this._response.url;
+	}
+
+	/**
+	 * True if http status is 2xx
+	 * @returns {Boolean}
 	 */
 	get ok() {
 		return this._response.ok || false;
 	}
 
 	/**
-	 * @var {Number} status  The http status number
+	 * The http status number
+	 * @returns {Number}
 	 */
 	get status() {
 		return this._response.status;
 	}
 
 	/**
-	 * @var {String} statusText  The http status text (e.g. OK or Forbidden)
+	 * The http status text (e.g. OK or Forbidden)
+	 * @returns {String}
 	 */
 	get statusText() {
 		return this._response.statusText;
 	}
 
 	/**
-	 * @var {String} statusClass  The category of response (one of 1xx, 2xx, 3xx, 4xx, 5xx)
+	 * The category of response (one of 1xx, 2xx, 3xx, 4xx, 5xx)
+	 * @returns {String}
 	 */
 	get statusClass() {
 		return String(this._response.status).slice(0, 1) + 'xx';
 	}
 
 	/**
-	 * @var {Number|null} total  The total found rows (e.g. number of results if limit were not applied)
+	 * The total found rows (e.g. number of results if limit were not applied)
+	 * @returns {Number|null}
 	 */
 	get total() {
 		return parseFloat(this.headers['api-total-records']) || null;
 	}
 
 	/**
-	 * @var {Number} size  The number of records returned
+	 * The number of records returned
+	 * @returns {Number}
 	 */
 	get size() {
 		return getObjectSize(this.data);
 	}
 
 	/**
-	 * @var {Number} limit  The max number of records requested
+	 * The max number of records requested
+	 * @returns {Number}
 	 */
 	get limit() {
 		return this._getIntParam('limit');
 	}
 	/**
-	 * @var {Number} page  The page of records requested
+	 * The page of records requested
+	 * @returns {Number}
 	 */
 	get page() {
 		return this._getIntParam('page');
 	}
 
 	/**
-	 * @var {Number} numPages  The total number of pages of records
-	 * @returns {number | null}
+	 * The total number of pages of records
+	 * @returns {Number|null}
 	 */
 	get numPages() {
 		return Math.ceil(this.total / this.limit) || null;
 	}
 
 	/**
-	 * @var {Boolean} isEmpty  True if no records were returned
+	 * True if no records were returned
+	 * @returns {Boolean}
 	 */
 	get isEmpty() {
 		return (
@@ -144,49 +208,56 @@ class ApiResponse {
 	}
 
 	/**
-	 * @var {Number} location  The value of the Location HTTP response header
+	 * The value of the Location HTTP response header
+	 * @returns {String}
 	 */
 	get location() {
 		return this.headers['location'];
 	}
 
 	/**
-	 * @var {Number} location  The value of the Content-Type HTTP response header
+	 * The value of the Content-type HTTP response header
+	 * @returns {String}
 	 */
 	get contentType() {
 		return this.headers['content-type'];
 	}
 
 	/**
-	 * @var {Number} location  The value of the Content-Length HTTP response header
+	 * The value of the Content-Length HTTP response header
+	 * @returns {Number}
 	 */
 	get contentLength() {
 		return parseInt(this.headers['content-length'], 10);
 	}
 
 	/**
-	 * @var {Array} notices  Notices from the API
+	 * Notices reported by the API
+	 * @returns {Array}
 	 */
 	get notices() {
 		return JSON.parse(this.headers['api-response-notices'] || '[]') || [];
 	}
 
 	/**
-	 * @var {Array} errors  Errors from the API
+	 * Errors reported by the API
+	 * @returns {Array}
 	 */
 	get errors() {
 		return JSON.parse(this.headers['api-response-errors'] || '[]') || [];
 	}
 
 	/**
-	 * @var {String} responseId  The APIs response id UUID
+	 * The APIs response id UUID
+	 * @returns {String}
 	 */
 	get responseId() {
 		return this.headers['api-response-id'];
 	}
 
 	/**
-	 * @var {Number|String|null} newId  The id of the newly created record
+	 * The id of the newly created record
+	 * @returns {Number|String|null}
 	 */
 	get newId() {
 		let id = this.headers['api-new-record-id'];
@@ -210,7 +281,8 @@ class ApiResponse {
 	}
 
 	/**
-	 * @var {Number} time  The total time the API reported it took
+	 * The total time the API reported it took
+	 * @returns {Number}
 	 */
 	get time() {
 		return parseFloat(this.headers['api-response-time']) || 0;

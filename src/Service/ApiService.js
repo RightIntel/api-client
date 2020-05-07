@@ -1,4 +1,5 @@
 const isEqual = require('lodash/isEqual');
+const equalsOrMatches = require('../equalsOrMatches/equalsOrMatches.js');
 const isPromise = require('is-promise');
 const ApiError = require('../Error/ApiError.js');
 const ApiRequest = require('../Request/ApiRequest.js');
@@ -68,8 +69,8 @@ class ApiService {
 
 	/**
 	 * Abort all requests matching the given values
-	 * @param methodOrPromise
-	 * @param [endpoint]
+	 * @param {String|Promise|RegExp} methodOrPromise  The HTTP verb or a single promise
+	 * @param {String|RegExp} [endpoint]  An endpoint name, URL or RegExp
 	 * @returns {Number}  The number of requests that were canceled
 	 */
 	abort(methodOrPromise = null, endpoint = null) {
@@ -89,13 +90,14 @@ class ApiService {
 		if (method && endpoint) {
 			// cancel all requests matching this verb and endpoint
 			matcher = item =>
-				method === item.request.method && endpoint === item.request.endpoint;
+				equalsOrMatches(item.request.method, method) &&
+				equalsOrMatches(item.request.endpoint, endpoint);
 		} else if (method) {
 			// cancel all requests with this verb
-			matcher = item => method === item.request.method;
+			matcher = item => equalsOrMatches(item.request.method, method);
 		} else if (endpoint) {
 			// cancel all requests to this endpoint
-			matcher = item => endpoint === item.request.endpoint;
+			matcher = item => equalsOrMatches(item.request.endpoint, endpoint);
 		} else {
 			// cancel all requests
 			matcher = () => true;
@@ -109,11 +111,11 @@ class ApiService {
 	 * Make an HTTP request
 	 * @param {String} method  GET, POST, DELETE, etc.
 	 * @param {String} endpoint  The name of the API endpoint such as /posts/123
-	 * @param {Object} [paramsOrData]  For GET requests, the query params; otherwise JSON payload
-	 * @param {Object} [kyOverrides]  Additional overrides including headers
+	 * @param {Object|null} [paramsOrData]  For GET requests, the query params; otherwise JSON payload
+	 * @param {Object_null} [kyOverrides]  Additional overrides including headers
 	 * @return {Promise<ApiResponse | ApiError>}
 	 */
-	request(method, endpoint, paramsOrData = {}, kyOverrides = {}) {
+	request(method, endpoint, paramsOrData = null, kyOverrides = null) {
 		let params, data;
 		if (/^get|head$/i.test(method)) {
 			params = paramsOrData;

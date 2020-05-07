@@ -27,6 +27,9 @@ function request(request) {
 	}
 }
 function response(response) {
+	if (response.dataType !== 'json') {
+		return;
+	}
 	mapFromUtc(response.data);
 }
 

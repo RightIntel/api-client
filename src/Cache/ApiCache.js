@@ -1,4 +1,5 @@
 const parseDuration = require('parse-duration');
+const equalsOrMatches = require('../equalsOrMatches/equalsOrMatches.js');
 
 class ApiCache {
 	/**
@@ -60,26 +61,10 @@ class ApiCache {
 		}
 		this.entries = this.entries.filter(entry => {
 			return (
-				!this._matches(entry.request.method, method) ||
-				!this._matches(entry.request.endpoint, endpoint)
+				!equalsOrMatches(entry.request.method, method) ||
+				!equalsOrMatches(entry.request.endpoint, endpoint)
 			);
 		});
-	}
-
-	/**
-	 * Check to see if the subject matches the given string or RegExp
-	 * @param {String} subject  The string to test
-	 * @param {String|RegExp|undefined} criteria  The string or regex to match against
-	 * @returns {Boolean}  Return true on exact string match, regex match or undefined
-	 * @private
-	 */
-	_matches(subject, criteria) {
-		if (typeof criteria === 'string') {
-			return subject === criteria;
-		} else if (criteria instanceof RegExp) {
-			return criteria.test(subject);
-		}
-		return true;
 	}
 
 	/**
