@@ -1,5 +1,5 @@
 const ApiCache = require('./ApiCache.js');
-const ApiRequest = require('../Request/ApiRequest.js');
+const ApiRequest = require('../ApiRequest/ApiRequest.js');
 
 jest.useFakeTimers();
 

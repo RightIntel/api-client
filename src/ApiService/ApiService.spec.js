@@ -1,7 +1,7 @@
 const ApiService = require('./ApiService.js');
-const ApiRequest = require('../Request/ApiRequest.js');
-const ApiResponse = require('../Response/ApiResponse.js');
-const ApiError = require('../Error/ApiError.js');
+const ApiRequest = require('../ApiRequest/ApiRequest.js');
+const ApiResponse = require('../ApiResponse/ApiResponse.js');
+const ApiError = require('../ApiError/ApiError.js');
 const ky = require('../ky/ky.js');
 
 describe('ApiService class', () => {

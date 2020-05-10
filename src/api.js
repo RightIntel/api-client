@@ -1,4 +1,4 @@
-const ApiService = require('./Service/ApiService.js');
+const ApiService = require('./ApiService/ApiService.js');
 const chunksInterceptor = require('./interceptors/chunksInterceptor/chunksInterceptor.js');
 const dateInterceptor = require('./interceptors/dateInterceptor/dateInterceptor.js');
 

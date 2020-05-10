@@ -1,6 +1,6 @@
 const dateInterceptor = require('./dateInterceptor.js');
-const ApiRequest = require('../../Request/ApiRequest.js');
-const ApiResponse = require('../../Response/ApiResponse.js');
+const ApiRequest = require('../../ApiRequest/ApiRequest.js');
+const ApiResponse = require('../../ApiResponse/ApiResponse.js');
 const moment = require('moment');
 
 const zeropad = s => (s > 9 ? s : '0' + s);

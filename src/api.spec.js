@@ -1,4 +1,4 @@
-const ApiService = require('./Service/ApiService.js');
+const ApiService = require('./ApiService/ApiService.js');
 const api = require('./api.js');
 const {
 	get,

@@ -1,4 +1,4 @@
-const ApiResponse = require('../Response/ApiResponse.js');
+const ApiResponse = require('../ApiResponse/ApiResponse.js');
 const ApiError = require('./ApiError.js');
 
 describe('ApiError instance', () => {

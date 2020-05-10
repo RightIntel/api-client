@@ -1,10 +1,10 @@
 const isEqual = require('lodash/isEqual');
 const equalsOrMatches = require('../equalsOrMatches/equalsOrMatches.js');
 const isPromise = require('is-promise');
-const ApiError = require('../Error/ApiError.js');
-const ApiRequest = require('../Request/ApiRequest.js');
-const ApiCache = require('../Cache/ApiCache.js');
-const ApiResponse = require('../Response/ApiResponse.js');
+const ApiError = require('../ApiError/ApiError.js');
+const ApiRequest = require('../ApiRequest/ApiRequest.js');
+const ApiCache = require('../ApiCache/ApiCache.js');
+const ApiResponse = require('../ApiResponse/ApiResponse.js');
 const ky = require('../ky/ky.js');
 
 class ApiService {
