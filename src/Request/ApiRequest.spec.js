@@ -94,7 +94,7 @@ describe('ApiRequest queryString getter/setter ', () => {
 		request.params = {
 			ab: [1, 2],
 		};
-		expect(request.queryString).toBe('ab=1%2C2');
+		expect(request.queryString).toBe('ab=1,2');
 	});
 	it('Should handle setting to string', () => {
 		const request = new ApiRequest();
@@ -131,11 +131,11 @@ describe('ApiRequest url getter/setter', () => {
 	});
 	it('should leave implied protocol URLs alone', () => {
 		const request = new ApiRequest('get', '://example.com/a');
-		expect(request.url).toBe('http://example.com/a');
+		expect(request.url).toBe('://example.com/a');
 	});
 	it('should leave double slash URLs alone', () => {
 		const request = new ApiRequest('get', '//example.com/a');
-		expect(request.url).toBe('http://example.com/a');
+		expect(request.url).toBe('//example.com/a');
 	});
 	it('should allow URL objects', () => {
 		const request = new ApiRequest('get', new URL('https://example.com/a'));
@@ -147,18 +147,77 @@ describe('ApiRequest url getter/setter', () => {
 		expect(request.url).toBe('https://example.com/a');
 	});
 	it('should allow setting endpoint to update URL', () => {
-		const request = new ApiRequest();
+		const request = new ApiRequest('get', '');
 		request.endpoint = '/posts';
-		expect(request.url).toBe('/api/v2/posts');
+		expect(request.url).toEqual('/api/v2/posts');
 	});
 	it('should handle when endpoint is falsy', () => {
-		const request = new ApiRequest();
-		request.endpoint = false;
-		expect(request.url).toBe('');
+		const request = new ApiRequest('get', '/abc');
+		request.endpoint = '';
+		expect(request.url).toBe('/api/v2');
+	});
+	it('should remove hash symbol', () => {
+		const request = new ApiRequest('get', '/abc#');
+		expect(request.url).toBe('/api/v2/abc');
+	});
+	it('should remove hash value', () => {
+		const request = new ApiRequest('get', '/abc#123');
+		expect(request.url).toBe('/api/v2/abc');
+	});
+	it('should allow setting object params', () => {
+		const request = new ApiRequest('get', '/abc', {
+			a: '1',
+		});
+		expect(request.url).toEqual('/api/v2/abc?a=1');
+	});
+	it('should allow question mark with no params', () => {
+		const request = new ApiRequest('get', '/abc?', {});
+		expect(request.url).toEqual('/api/v2/abc?');
 	});
 	it('should allow setting string params and object params', () => {
-		const request = new ApiRequest('get', '/abc?b=2', { a: '1' });
-		expect(request.url).toMatch(/\/abc\?a=1&b=2/);
+		const request = new ApiRequest('get', '/abc?b=2', {
+			a: '1',
+		});
+		expect(request.url).toEqual('/api/v2/abc?a=1&b=2');
+	});
+	it('should allow object params to override string params', () => {
+		const request = new ApiRequest('get', '/abc?a=one&b=2', { a: '1' });
+		expect(request.url).toEqual('/api/v2/abc?a=1&b=2');
+	});
+	it('should serialize undefined properly', () => {
+		const request = new ApiRequest('get', '/abc', {
+			a: undefined,
+			b: 2,
+		});
+		expect(request.url).toEqual('/api/v2/abc?b=2');
+	});
+	it('should serialize null properly', () => {
+		const request = new ApiRequest('get', '/abc', {
+			a: null,
+			b: 2,
+		});
+		expect(request.url).toEqual('/api/v2/abc?b=2');
+	});
+	it('should serialize true properly', () => {
+		const request = new ApiRequest('get', '/abc', {
+			a: true,
+			b: 2,
+		});
+		expect(request.url).toEqual('/api/v2/abc?a=1&b=2');
+	});
+	it('should serialize false properly', () => {
+		const request = new ApiRequest('get', '/abc', {
+			a: false,
+			b: 2,
+		});
+		expect(request.url).toEqual('/api/v2/abc?a=0&b=2');
+	});
+	it('should serialize arrays into comma-delimited string', () => {
+		const request = new ApiRequest('get', '/abc', {
+			a: ['1.1', '1.2'],
+			b: 2,
+		});
+		expect(request.url).toEqual('/api/v2/abc?a=1.1,1.2&b=2');
 	});
 });
 

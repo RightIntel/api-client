@@ -1,4 +1,4 @@
-const isEmpty = require('lodash/isEmpty.js');
+const { stringify, parse } = require('../SearchParams/SearchParams.js');
 const ky = require('../ky/ky.js');
 
 /**
@@ -21,19 +21,26 @@ class ApiRequest {
 		options = undefined
 	) {
 		// save passed values
-		this._method = method;
-		this.endpoint = endpoint;
-		this.params = params;
-		this.data = data;
 		if (!options) {
 			options = {};
 		}
-		const { headers, ...optionsNoHeaders } = options;
-		this.options = optionsNoHeaders;
+		const {
+			paramsSerializer,
+			paramsUnserializer,
+			headers,
+			...kyOptions
+		} = options;
+		this.paramsSerializer = paramsSerializer || stringify;
+		this.paramsUnserializer = paramsUnserializer || parse;
+		this.options = kyOptions;
 		this._processHeaders(headers);
 		this._abortController = new AbortController();
 		this.pending = false;
 		this.completed = false;
+		this._method = method;
+		this.endpoint = endpoint;
+		this.params = params;
+		this.data = data;
 		this._markComplete = this._markComplete.bind(this);
 	}
 
@@ -83,16 +90,11 @@ class ApiRequest {
 	 * @param {Object|URLSearchParams|String|null} newParams
 	 */
 	set params(newParams) {
-		if (!newParams) {
+		if (newParams) {
+			this._params = this.paramsUnserializer(newParams);
+		} else {
 			this._params = {};
-			return;
 		}
-		let usp = new URLSearchParams(newParams);
-		const params = {};
-		for (const [key, value] of usp.entries()) {
-			params[key] = value;
-		}
-		this._params = params;
 	}
 
 	/**
@@ -100,10 +102,7 @@ class ApiRequest {
 	 * @returns {String}
 	 */
 	get queryString() {
-		// URLSearchParams accepts string, object or another URLSearchParams object
-		const params = new URLSearchParams(this._params);
-		params.sort();
-		return params.toString().replace(/\+/g, '%20');
+		return this.paramsSerializer(this._params);
 	}
 
 	/**
@@ -120,25 +119,17 @@ class ApiRequest {
 	 */
 	get url() {
 		if (this.endpoint instanceof URL) {
-			return this._maybeAddQueryString(this.endpoint.toString());
+			return this._finalizeUrl(this.endpoint.toString());
 		}
 		if (typeof this.endpoint !== 'string') {
 			return '';
 		}
 		// URL is already a full URL
-		if (/^https?:\/\//i.test(this.endpoint)) {
-			return this._maybeAddQueryString(this.endpoint);
+		// or URL has domain but implicit protocol
+		if (/^(https?:\/\/|:\/\/|\/\/)/i.test(this.endpoint)) {
+			return this._finalizeUrl(this.endpoint);
 		}
-		const match = this.endpoint.match(/^:?\/\/(.+)/);
-		if (match) {
-			/* istanbul ignore next */
-			const protocol =
-				typeof window !== 'undefined' && window.location
-					? window.location.protocol
-					: 'http:';
-			return this._maybeAddQueryString(`${protocol}//${match[1]}`);
-		}
-		// construct using api base url
+		// URL is relative to domain
 		let version = 'v2';
 		const endpoint = this.endpoint.replace(
 			/^(?:\/?api)?\/(v\d+)\//,
@@ -147,31 +138,34 @@ class ApiRequest {
 				return '/';
 			}
 		);
-		return this._maybeAddQueryString(`/api/${version}${endpoint}`);
+		return this._finalizeUrl(`/api/${version}${endpoint}`);
 	}
 
 	/**
-	 * Given a query string, add this._params if not empty
-	 * @param {String} url  The full URL
+	 * Given an endpoint or URL, add this._params if not empty
+	 * @param {String} url  The endpoint or URL
 	 * @returns {String}
 	 * @private
 	 */
-	_maybeAddQueryString(url) {
-		if (isEmpty(this._params)) {
-			return url;
-		}
-		const match = url.match(/(.+)\?([^#]+)(#.*|)$/);
-		if (match) {
-			const urlParams = new URLSearchParams(match[2]);
-			const objParams = new URLSearchParams(this._params);
-			for (const [key, value] of objParams) {
-				urlParams.append(key, value);
+	_finalizeUrl(url) {
+		// remove any hash value
+		url = url.replace(/#.*$/, '');
+		const [path, search] = url.split('?');
+		let queryString = '';
+		// combine string params with object params
+		if (search) {
+			const urlParams = this.paramsUnserializer(search);
+			const allParams = { ...urlParams, ...this._params };
+			queryString = '?' + this.paramsSerializer(allParams);
+		} else {
+			const qs = this.queryString;
+			if (qs) {
+				queryString = '?' + this.queryString;
+			} else if (search === '') {
+				queryString = '?';
 			}
-			urlParams.sort();
-			const qs = urlParams.toString().replace(/\+/g, '%20');
-			return `${match[1]}?${qs}${match[3]}`;
 		}
-		return `${url}?${this.queryString}`;
+		return path + queryString;
 	}
 
 	/**
