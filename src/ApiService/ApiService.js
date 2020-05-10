@@ -9,9 +9,10 @@ const ky = require('../ky/ky.js');
 
 class ApiService {
 	/**
-	 * Setup values we need
+	 * Set up cache, interceptor list, pending requests and default options
+	 * @param {Object} defaultOptions  Any options to use for every request
 	 */
-	constructor() {
+	constructor(defaultOptions = {}) {
 		/**
 		 * Object to track previous requests
 		 * @type {Object}
@@ -36,6 +37,12 @@ class ApiService {
 		 * @private
 		 */
 		this.pendingRequests = [];
+		/**
+		 * Object with options to use for every request
+		 * @type {Object}
+		 * @private
+		 */
+		this._defaultOptions = defaultOptions;
 	}
 
 	/**
@@ -108,6 +115,34 @@ class ApiService {
 	}
 
 	/**
+	 * Set the options to use for every request
+	 * @param {Object} defaultOptions  Any options to use for every request
+	 * @returns {ApiService}
+	 */
+	setDefaultOptions(defaultOptions = {}) {
+		this._defaultOptions = defaultOptions;
+		return this;
+	}
+
+	/**
+	 * Get the options to use for every request
+	 * @returns {Object}
+	 */
+	getDefaultOptions() {
+		return this._defaultOptions;
+	}
+
+	/**
+	 * Add more options to use for every request
+	 * @param {Object} defaultOptions  Any options to use for every request
+	 * @returns {ApiService}
+	 */
+	addDefaultOptions(defaultOptions) {
+		Object.assign(this._defaultOptions, defaultOptions);
+		return this;
+	}
+
+	/**
 	 * Make an HTTP request
 	 * @param {String} method  GET, POST, DELETE, etc.
 	 * @param {String} endpoint  The name of the API endpoint such as /posts/123
@@ -122,7 +157,8 @@ class ApiService {
 		} else {
 			data = paramsOrData;
 		}
-		const request = new ApiRequest(method, endpoint, params, data, kyOverrides);
+		const options = { ...this._defaultOptions, ...kyOverrides };
+		const request = new ApiRequest(method, endpoint, params, data, options);
 		// return cached promise if available
 		let cached = this.cache.find(request);
 		if (cached) {

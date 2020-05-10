@@ -419,3 +419,29 @@ describe('ApiService caching', () => {
 		expect(promise1).not.toBe(promise2);
 	});
 });
+
+describe('ApiService default options', () => {
+	it('should accept options upon instantiation', async () => {
+		const api = new ApiService({ headers: { Authentication: 'Bearer 123' } });
+		const resp = await api.get('https://httpbin.org/get');
+		expect(resp.data.headers.Authentication).toBe('Bearer 123');
+	});
+	it('should accept options at setDefaultOptions', async () => {
+		const api = new ApiService();
+		api.setDefaultOptions({ headers: { Authentication: 'Bearer 456' } });
+		const resp = await api.get('https://httpbin.org/get');
+		expect(resp.data.headers.Authentication).toBe('Bearer 456');
+	});
+	it('should add options at addDefaultOptions', async () => {
+		const api = new ApiService();
+		api.addDefaultOptions({ headers: { Authentication: 'Bearer 789' } });
+		const resp = await api.get('https://httpbin.org/get');
+		expect(resp.data.headers.Authentication).toBe('Bearer 789');
+	});
+	it('should get options that were set', () => {
+		const api = new ApiService();
+		api.addDefaultOptions({ headers: { Authentication: 'Bearer 010' } });
+		const opt = api.getDefaultOptions();
+		expect(opt.headers.Authentication).toBe('Bearer 010');
+	});
+});

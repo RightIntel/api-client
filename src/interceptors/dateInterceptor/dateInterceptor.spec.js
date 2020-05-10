@@ -5,13 +5,7 @@ const moment = require('moment');
 
 const zeropad = s => (s > 9 ? s : '0' + s);
 const interceptor = dateInterceptor;
-const {
-	isDateField,
-	isDateFormat,
-	mapFromUtc,
-	mapToUtc,
-	fromUtc,
-} = dateInterceptor;
+const { isDateField, isDateFormat } = dateInterceptor;
 
 describe('isDateFormat()', () => {
 	it('should recognize ISO with milliseconds and timezone', () => {
@@ -208,7 +202,18 @@ describe('dateInterceptor responses', () => {
 			data: { created_at: day1 },
 			type: 'json',
 		});
-		interceptor.response({ response });
+		interceptor.response(response);
 		expect(response.data.created_at).toBe(day1);
+	});
+
+	it('should ignore text responses', () => {
+		const text = 'Hello at 2016-06-01T18:00:00+00:00';
+		const response = new ApiResponse({
+			request: {},
+			data: text,
+			type: 'text',
+		});
+		interceptor.response(response);
+		expect(response.data).toBe(text);
 	});
 });

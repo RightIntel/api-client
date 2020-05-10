@@ -69,13 +69,6 @@ function toUtc(dateStr) {
 // recursively iterate an object or array
 // and convert dates to UTC as needed (for the server)
 function mapToUtc(objOrArray) {
-	if (objOrArray instanceof URLSearchParams) {
-		for (const [key, value] of objOrArray.entries()) {
-			if (isDateField(key) && isDateFormat(value)) {
-				objOrArray.set(key, toUtc(value));
-			}
-		}
-	}
 	forEach(objOrArray, (value, key) => {
 		if (typeof value === 'object') {
 			// object or array
