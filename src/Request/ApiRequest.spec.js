@@ -151,9 +151,19 @@ describe('ApiRequest url getter/setter', () => {
 		request.endpoint = '/posts';
 		expect(request.url).toEqual('/api/v2/posts');
 	});
-	it('should handle when endpoint is falsy', () => {
+	it('should handle when endpoint is empty string', () => {
 		const request = new ApiRequest('get', '/abc');
 		request.endpoint = '';
+		expect(request.url).toBe('/api/v2');
+	});
+	it('should handle when endpoint is false', () => {
+		const request = new ApiRequest('get', '/abc');
+		request.endpoint = false;
+		expect(request.url).toBe('/api/v2');
+	});
+	it('should handle when endpoint is null', () => {
+		const request = new ApiRequest('get', '/abc');
+		request.endpoint = null;
 		expect(request.url).toBe('/api/v2');
 	});
 	it('should remove hash symbol', () => {

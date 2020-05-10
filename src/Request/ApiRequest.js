@@ -121,9 +121,6 @@ class ApiRequest {
 		if (this.endpoint instanceof URL) {
 			return this._finalizeUrl(this.endpoint.toString());
 		}
-		if (typeof this.endpoint !== 'string') {
-			return '';
-		}
 		// URL is already a full URL
 		// or URL has domain but implicit protocol
 		if (/^(https?:\/\/|:\/\/|\/\/)/i.test(this.endpoint)) {
@@ -131,7 +128,7 @@ class ApiRequest {
 		}
 		// URL is relative to domain
 		let version = 'v2';
-		const endpoint = this.endpoint.replace(
+		const endpoint = String(this.endpoint || '').replace(
 			/^(?:\/?api)?\/(v\d+)\//,
 			($0, $1) => {
 				version = $1;

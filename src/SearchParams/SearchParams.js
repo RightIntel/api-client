@@ -47,6 +47,7 @@ function parse(objOrString) {
 function _cleanObject(object) {
 	const cleanObject = {};
 	for (const prop in object) {
+		// istanbul ignore next
 		if (!object.hasOwnProperty(prop)) {
 			continue;
 		}

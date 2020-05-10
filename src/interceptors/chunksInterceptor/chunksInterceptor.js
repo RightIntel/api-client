@@ -13,6 +13,7 @@ function request(request) {
 	// (e.g. "Hubs" header can get really long for superadmins)
 	// see api2->loadRequestHeaders()
 	for (const name in request.headers) {
+		// istanbul ignore next
 		if (!request.headers.hasOwnProperty(name)) {
 			continue;
 		}
