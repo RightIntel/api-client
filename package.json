@@ -33,7 +33,7 @@
     "is-promise": "^4.0.0",
     "ky": "^0.19.1",
     "ky-universal": "^0.6.0",
-    "lodash": "^4.17.15",
+    "lodash": "^4.17.19",
     "moment": "^2.25.1",
     "moment-parseplus": "^1.1.5",
     "parse-duration": "^0.3.3"
