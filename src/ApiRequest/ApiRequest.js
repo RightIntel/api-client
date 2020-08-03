@@ -28,6 +28,7 @@ class ApiRequest {
 			paramsSerializer,
 			paramsUnserializer,
 			headers,
+			baseURL,
 			...kyOptions
 		} = options;
 		this.paramsSerializer = paramsSerializer || stringify;
@@ -38,7 +39,7 @@ class ApiRequest {
 		this.pending = false;
 		this.completed = false;
 		this._method = method;
-		this.endpoint = endpoint;
+		this.endpoint = (baseURL || '') + endpoint;
 		this.params = params;
 		this.data = data;
 		this._markComplete = this._markComplete.bind(this);

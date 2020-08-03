@@ -444,4 +444,16 @@ describe('ApiService default options', () => {
 		const opt = api.getDefaultOptions();
 		expect(opt.headers.Authentication).toBe('Bearer 010');
 	});
+	it('should get and set baseURL', () => {
+		const api = new ApiService();
+		api.setBaseURL('https://example.com/api');
+		const opt = api.getDefaultOptions();
+		expect(opt.baseURL).toBe('https://example.com/api');
+	});
+	it('should set baseURL', () => {
+		const api = new ApiService();
+		api.setBaseURL('https://example.com/api');
+		const base = api.getBaseURL();
+		expect(base).toBe('https://example.com/api');
+	});
 });

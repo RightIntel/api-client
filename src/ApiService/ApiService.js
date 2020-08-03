@@ -143,6 +143,25 @@ class ApiService {
 	}
 
 	/**
+	 * Set a base URL to prepend to endpoint paths
+	 * @note This is merely a convenience for api.addDefaultOptions({ baseURL }
+	 * @param {String} baseURL  The string to prepend
+	 * @returns {ApiService}
+	 */
+	setBaseURL(baseURL) {
+		this._defaultOptions.baseURL = baseURL;
+		return this;
+	}
+
+	/**
+	 *
+	 * @returns {String|undefined}
+	 */
+	getBaseURL() {
+		return this._defaultOptions.baseURL;
+	}
+
+	/**
 	 * Make an HTTP request
 	 * @param {String} method  GET, POST, DELETE, etc.
 	 * @param {String} endpoint  The name of the API endpoint such as /posts/123

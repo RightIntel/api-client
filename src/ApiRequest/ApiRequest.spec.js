@@ -137,6 +137,16 @@ describe('ApiRequest url getter/setter', () => {
 		const request = new ApiRequest('get', '//example.com/a');
 		expect(request.url).toBe('//example.com/a');
 	});
+	it('should handle baseURL', () => {
+		const request = new ApiRequest(
+			'get',
+			'/a',
+			{},
+			{},
+			{ baseURL: 'https://example.com' }
+		);
+		expect(request.url).toBe('https://example.com/a');
+	});
 	it('should allow URL objects', () => {
 		const request = new ApiRequest('get', new URL('https://example.com/a'));
 		expect(request.url).toBe('https://example.com/a');
