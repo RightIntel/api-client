@@ -156,7 +156,7 @@ describe('ApiService errors', () => {
 		try {
 			await api.get('abc://unvalid');
 		} catch (error) {
-			expect(error).toBeInstanceOf(TypeError);
+			expect(error.constructor.name).toBe('TypeError');
 		}
 	});
 
