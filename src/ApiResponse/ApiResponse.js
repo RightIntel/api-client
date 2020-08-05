@@ -64,7 +64,11 @@ class ApiResponse {
 	 */
 	_processHeaders(headers = {}) {
 		this.headers = {};
-		if (headers instanceof Headers) {
+		if (
+			headers &&
+			headers.constructor &&
+			headers.constructor.name === 'Headers'
+		) {
 			for (const [name, value] of headers) {
 				this.headers[name.toLocaleLowerCase()] = value;
 			}
