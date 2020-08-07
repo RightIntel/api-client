@@ -58,6 +58,30 @@ class ApiResponse {
 	}
 
 	/**
+	 * Get a object representation of this request/response
+	 * @returns {{request: {headers: ({}|Object), endpoint: string, method: string, payload: {}, options: *}, response: {headers: {}, data: (*|null), statusText: String, dataType: null, text: (String|null), status: Number}}}
+	 */
+	debug() {
+		return {
+			request: {
+				method: this.request._method.toUpperCase(),
+				endpoint: this.request.endpoint,
+				payload: this.request._params,
+				options: this.request.options,
+				headers: this.request.headers,
+			},
+			response: {
+				status: this.status,
+				statusText: this.statusText,
+				headers: this.headers,
+				dataType: this.dataType,
+				data: this.data,
+				text: this.text,
+			},
+		};
+	}
+
+	/**
 	 * Take response headers and convert to Object
 	 * @param {Object|Headers} [headers]  The headers
 	 * @private
