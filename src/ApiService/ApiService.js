@@ -92,7 +92,13 @@ class ApiService {
 			}
 			return 0;
 		}
-		const method = (methodOrPromise || '').toUpperCase();
+		let method;
+		if (methodOrPromise instanceof RegExp) {
+			method = methodOrPromise;
+		}
+		if (typeof methodOrPromise === 'string') {
+			method = methodOrPromise.toUpperCase();
+		}
 		let matcher;
 		if (method && endpoint) {
 			// cancel all requests matching this verb and endpoint

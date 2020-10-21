@@ -346,6 +346,66 @@ describe('ApiService abort() function', () => {
 		}, 100);
 	});
 
+	it('should abort by verb RegExp', done => {
+		const api = new ApiService();
+		let didResolve = false;
+		let rejection;
+		const promise = api.get('https://httpbin.org/get?d=4');
+		promise.then(
+			resp => {
+				didResolve = true;
+			},
+			err => (rejection = err)
+		);
+		const numAborted = api.abort(/get/i);
+		expect(numAborted).toBe(1);
+		setTimeout(() => {
+			expect(didResolve).toBe(false);
+			expect(rejection).toBeInstanceOf(ApiError);
+			done();
+		}, 100);
+	});
+
+	it('should abort by endpoint RegExp', done => {
+		const api = new ApiService();
+		let didResolve = false;
+		let rejection;
+		const promise = api.get('https://httpbin.org/get?d=4');
+		promise.then(
+			resp => {
+				didResolve = true;
+			},
+			err => (rejection = err)
+		);
+		const numAborted = api.abort(null, /httpbin/);
+		expect(numAborted).toBe(1);
+		setTimeout(() => {
+			expect(didResolve).toBe(false);
+			expect(rejection).toBeInstanceOf(ApiError);
+			done();
+		}, 100);
+	});
+
+	it('should abort by string verb and endpoint RegExp', done => {
+		const api = new ApiService();
+		let didResolve = false;
+		let rejection;
+		const promise = api.get('https://httpbin.org/get?d=4');
+		promise.then(
+			resp => {
+				didResolve = true;
+			},
+			err => (rejection = err)
+		);
+		const numAborted = api.abort('GET', /httpbin/);
+		expect(numAborted).toBe(1);
+		setTimeout(() => {
+			expect(didResolve).toBe(false);
+			expect(rejection).toBeInstanceOf(ApiError);
+			done();
+		}, 100);
+	});
+
 	it('should abort by verb and endpoint', done => {
 		const api = new ApiService();
 		let didResolve = false;
