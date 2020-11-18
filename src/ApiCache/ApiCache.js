@@ -68,7 +68,7 @@ class ApiCache {
 	}
 
 	/**
-	 * Given a cacheFor number or string, return the number of millseconds to cache for
+	 * Given a cacheFor number or string, return the number of milliseconds to cache for
 	 * @param {Number|String} cacheFor  Number of milliseconds or a string such as 45s, 5m, 8h, 1d
 	 * @returns {Number}
 	 */

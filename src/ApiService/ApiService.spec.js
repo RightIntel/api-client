@@ -190,7 +190,7 @@ describe('ApiService interceptors', () => {
 	it('should accept a GET request interceptor', async () => {
 		const api = new ApiService();
 		const incrementer = request => {
-			request.params.a++;
+			request.params = { ...request.params, a: request.params.a + 1 };
 		};
 		api.addInterceptor({ request: incrementer });
 		const response = await api.get('https://httpbin.org/get', { a: 1 });
@@ -203,7 +203,7 @@ describe('ApiService interceptors', () => {
 		expect.assertions(2);
 		const api = new ApiService();
 		const incrementB = (request, response) => {
-			expect(request.params.b).toBe('2');
+			expect(request.params.b).toBe(2);
 			response.data.args.b++;
 		};
 		api.addInterceptor({ response: incrementB });

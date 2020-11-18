@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset='utf-8'>
-  <title>api-client 1.0.3 | Documentation</title>
+  <title>api-client 1.0.7 | Documentation</title>
   <meta name='description' content='JavaScript api client for use in React and Node'>
   <meta name='viewport' content='width=device-width,initial-scale=1'>
   <link href='assets/bass.css' rel='stylesheet'>
@@ -15,7 +15,7 @@
       <div id='split-left' class='overflow-auto fs0 height-viewport-100'>
         <div class='py1 px2'>
           <h3 class='mb0 no-anchor'>api-client</h3>
-          <div class='mb1'><code>1.0.3</code></div>
+          <div class='mb1'><code>1.0.7</code></div>
           <input
             placeholder='Filter'
             id='filter-input'
@@ -92,6 +92,12 @@
                       <li class='h5'><span>Instance members</span></li>
                       
                       <li><a
+                        href='#apirequestheaders'
+                        class='regular pre-open'>
+                        #headers
+                      </a></li>
+                      
+                      <li><a
                         href='#apirequestmethod'
                         class='regular pre-open'>
                         #method
@@ -128,6 +134,12 @@
                       </a></li>
                       
                       <li><a
+                        href='#apirequest_buildurl'
+                        class='regular pre-open'>
+                        #_buildUrl
+                      </a></li>
+                      
+                      <li><a
                         href='#apirequesturl'
                         class='regular pre-open'>
                         #url
@@ -137,6 +149,18 @@
                         href='#apirequesturl'
                         class='regular pre-open'>
                         #url
+                      </a></li>
+                      
+                      <li><a
+                        href='#apirequestendpoint'
+                        class='regular pre-open'>
+                        #endpoint
+                      </a></li>
+                      
+                      <li><a
+                        href='#apirequestendpoint'
+                        class='regular pre-open'>
+                        #endpoint
                       </a></li>
                       
                       <li><a
@@ -172,6 +196,12 @@
                   
                     <ul class='list-reset py1-ul pl1'>
                       <li class='h5'><span>Instance members</span></li>
+                      
+                      <li><a
+                        href='#apiresponsedebug'
+                        class='regular pre-open'>
+                        #debug
+                      </a></li>
                       
                       <li><a
                         href='#apiresponserawresponse'
@@ -380,6 +410,26 @@
                   href='#adddefaultoptions'
                   class="">
                   addDefaultOptions
+                  
+                </a>
+                
+                </li>
+              
+                
+                <li><a
+                  href='#setbaseurl'
+                  class="">
+                  setBaseURL
+                  
+                </a>
+                
+                </li>
+              
+                
+                <li><a
+                  href='#getbaseurl'
+                  class="">
+                  getBaseURL
                   
                 </a>
                 
@@ -852,7 +902,7 @@
   </div>
   
 
-  <p>Given a cacheFor number or string, return the number of millseconds to cache for</p>
+  <p>Given a cacheFor number or string, return the number of milliseconds to cache for</p>
 
     <div class='pre p1 fill-light mt0'>getMilliseconds(cacheFor: (<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">Number</a> | <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">String</a>)): <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">Number</a></div>
   
@@ -943,7 +993,8 @@
       
         <div class='space-bottom0'>
           <div>
-            <span class='code bold'>method</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">String</a>)</code>
+            <span class='code bold'>method</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">String</a>
+            = <code>&#39;GET&#39;</code>)</code>
 	    The HTTP verb
 
           </div>
@@ -952,7 +1003,8 @@
       
         <div class='space-bottom0'>
           <div>
-            <span class='code bold'>endpoint</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">String</a>)</code>
+            <span class='code bold'>endpoint</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">String</a>
+            = <code>&#39;&#39;</code>)</code>
 	    The API endpoint or full URL
 
           </div>
@@ -1007,6 +1059,63 @@
   
     <div class='py1 quiet mt1 prose-big'>Instance Members</div>
     <div class="clearfix">
+  
+    <div class='border-bottom' id='apirequestheaders'>
+      <div class="clearfix small pointer toggle-sibling">
+        <div class="py1 contain">
+            <a class='icon pin-right py1 dark-link caret-right'>▸</a>
+            <span class='code strong strong truncate'>headers</span>
+        </div>
+      </div>
+      <div class="clearfix display-none toggle-target">
+        <section class='p2 mb2 clearfix bg-white minishadow'>
+
+  
+
+  <p>Get the headers as a plain object</p>
+
+    <div class='pre p1 fill-light mt0'>headers</div>
+  
+  
+
+  
+  
+  
+  
+  
+  
+
+  
+
+  
+
+  
+    
+      <div class='py1 quiet mt1 prose-big'>Returns</div>
+      <code><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object">Object</a></code>:
+        
+
+      
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+</section>
+
+      </div>
+    </div>
   
     <div class='border-bottom' id='apirequestmethod'>
       <div class="clearfix small pointer toggle-sibling">
@@ -1366,11 +1475,11 @@
       </div>
     </div>
   
-    <div class='border-bottom' id='apirequesturl'>
+    <div class='border-bottom' id='apirequest_buildurl'>
       <div class="clearfix small pointer toggle-sibling">
         <div class="py1 contain">
             <a class='icon pin-right py1 dark-link caret-right'>▸</a>
-            <span class='code strong strong truncate'>url</span>
+            <span class='code strong strong truncate'>_buildUrl(endpointOrUrl)</span>
         </div>
       </div>
       <div class="clearfix display-none toggle-target">
@@ -1380,7 +1489,7 @@
 
   <p>Get the full URL including search params</p>
 
-    <div class='pre p1 fill-light mt0'>url</div>
+    <div class='pre p1 fill-light mt0'>_buildUrl(endpointOrUrl: any): <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">String</a></div>
   
   
 
@@ -1391,6 +1500,19 @@
   
   
 
+  
+    <div class='py1 quiet mt1 prose-big'>Parameters</div>
+    <div class='prose'>
+      
+        <div class='space-bottom0'>
+          <div>
+            <span class='code bold'>endpointOrUrl</span> <code class='quiet'>(any)</code>
+	    
+          </div>
+          
+        </div>
+      
+    </div>
   
 
   
@@ -1454,7 +1576,7 @@
       
         <div class='space-bottom0'>
           <div>
-            <span class='code bold'>newUrl</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">String</a>)</code>
+            <span class='code bold'>endpointOrUrl</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">String</a>)</code>
 	    
           </div>
           
@@ -1465,6 +1587,182 @@
 
   
 
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+</section>
+
+      </div>
+    </div>
+  
+    <div class='border-bottom' id='apirequesturl'>
+      <div class="clearfix small pointer toggle-sibling">
+        <div class="py1 contain">
+            <a class='icon pin-right py1 dark-link caret-right'>▸</a>
+            <span class='code strong strong truncate'>url</span>
+        </div>
+      </div>
+      <div class="clearfix display-none toggle-target">
+        <section class='p2 mb2 clearfix bg-white minishadow'>
+
+  
+
+  <p>Get the full URL</p>
+
+    <div class='pre p1 fill-light mt0'>url</div>
+  
+  
+
+  
+  
+  
+  
+  
+  
+
+  
+
+  
+
+  
+    
+      <div class='py1 quiet mt1 prose-big'>Returns</div>
+      <code><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">String</a></code>:
+        
+
+      
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+</section>
+
+      </div>
+    </div>
+  
+    <div class='border-bottom' id='apirequestendpoint'>
+      <div class="clearfix small pointer toggle-sibling">
+        <div class="py1 contain">
+            <a class='icon pin-right py1 dark-link caret-right'>▸</a>
+            <span class='code strong strong truncate'>endpoint</span>
+        </div>
+      </div>
+      <div class="clearfix display-none toggle-target">
+        <section class='p2 mb2 clearfix bg-white minishadow'>
+
+  
+
+  <p>Set the endpoint and the URL</p>
+
+    <div class='pre p1 fill-light mt0'>endpoint</div>
+  
+  
+
+  
+  
+  
+  
+  
+  
+
+  
+    <div class='py1 quiet mt1 prose-big'>Parameters</div>
+    <div class='prose'>
+      
+        <div class='space-bottom0'>
+          <div>
+            <span class='code bold'>urlOrEndpoint</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">String</a>)</code>
+	    
+          </div>
+          
+        </div>
+      
+    </div>
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+</section>
+
+      </div>
+    </div>
+  
+    <div class='border-bottom' id='apirequestendpoint'>
+      <div class="clearfix small pointer toggle-sibling">
+        <div class="py1 contain">
+            <a class='icon pin-right py1 dark-link caret-right'>▸</a>
+            <span class='code strong strong truncate'>endpoint</span>
+        </div>
+      </div>
+      <div class="clearfix display-none toggle-target">
+        <section class='p2 mb2 clearfix bg-white minishadow'>
+
+  
+
+  <p>Get the endpoint string</p>
+
+    <div class='pre p1 fill-light mt0'>endpoint</div>
+  
+  
+
+  
+  
+  
+  
+  
+  
+
+  
+
+  
+
+  
+    
+      <div class='py1 quiet mt1 prose-big'>Returns</div>
+      <code><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">String</a></code>:
+        
+
+      
+    
   
 
   
@@ -1723,6 +2021,63 @@
   
     <div class='py1 quiet mt1 prose-big'>Instance Members</div>
     <div class="clearfix">
+  
+    <div class='border-bottom' id='apiresponsedebug'>
+      <div class="clearfix small pointer toggle-sibling">
+        <div class="py1 contain">
+            <a class='icon pin-right py1 dark-link caret-right'>▸</a>
+            <span class='code strong strong truncate'>debug()</span>
+        </div>
+      </div>
+      <div class="clearfix display-none toggle-target">
+        <section class='p2 mb2 clearfix bg-white minishadow'>
+
+  
+
+  <p>Get a object representation of this request/response</p>
+
+    <div class='pre p1 fill-light mt0'>debug(): {request: {headers: ({} | <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object">Object</a>), endpoint: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>, method: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>, payload: {}, options: any}, response: {headers: {}, data: (any | null), statusText: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">String</a>, dataType: null, text: (<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">String</a> | null), status: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">Number</a>}}</div>
+  
+  
+
+  
+  
+  
+  
+  
+  
+
+  
+
+  
+
+  
+    
+      <div class='py1 quiet mt1 prose-big'>Returns</div>
+      <code>{request: {headers: ({} | <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object">Object</a>), endpoint: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>, method: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>, payload: {}, options: any}, response: {headers: {}, data: (any | null), statusText: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">String</a>, dataType: null, text: (<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">String</a> | null), status: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">Number</a>}}</code>:
+        
+
+      
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+</section>
+
+      </div>
+    </div>
   
     <div class='border-bottom' id='apiresponserawresponse'>
       <div class="clearfix small pointer toggle-sibling">
@@ -3550,6 +3905,135 @@
     
       <div class='py1 quiet mt1 prose-big'>Returns</div>
       <code>ApiService</code>:
+        
+
+      
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+</section>
+
+          
+        
+          
+          <section class='p2 mb2 clearfix bg-white minishadow'>
+
+  
+  <div class='clearfix'>
+    
+    <h3 class='fl m0' id='setbaseurl'>
+      setBaseURL
+    </h3>
+    
+    
+  </div>
+  
+
+  <p>Set a base URL to prepend to endpoint paths</p>
+
+    <div class='pre p1 fill-light mt0'>setBaseURL(baseURL: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">String</a>): ApiService</div>
+  
+  
+
+  
+  
+  
+  
+  
+  
+
+  
+    <div class='py1 quiet mt1 prose-big'>Parameters</div>
+    <div class='prose'>
+      
+        <div class='space-bottom0'>
+          <div>
+            <span class='code bold'>baseURL</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">String</a>)</code>
+	    The string to prepend
+
+          </div>
+          
+        </div>
+      
+    </div>
+  
+
+  
+
+  
+    
+      <div class='py1 quiet mt1 prose-big'>Returns</div>
+      <code>ApiService</code>:
+        
+
+      
+    
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+</section>
+
+          
+        
+          
+          <section class='p2 mb2 clearfix bg-white minishadow'>
+
+  
+  <div class='clearfix'>
+    
+    <h3 class='fl m0' id='getbaseurl'>
+      getBaseURL
+    </h3>
+    
+    
+  </div>
+  
+
+  
+    <div class='pre p1 fill-light mt0'>getBaseURL(): (<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">String</a> | <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/undefined">undefined</a>)</div>
+  
+  
+
+  
+  
+  
+  
+  
+  
+
+  
+
+  
+
+  
+    
+      <div class='py1 quiet mt1 prose-big'>Returns</div>
+      <code>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">String</a> | <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/undefined">undefined</a>)</code>:
         
 
       

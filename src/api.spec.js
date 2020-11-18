@@ -30,3 +30,19 @@ describe('other exports', () => {
 		expect(submitJob).toBeInstanceOf(Function);
 	});
 });
+describe('Handle real caching situation', () => {
+	it('should return identical promise and identical response object', async () => {
+		const promise1 = api.get(
+			'https://httpbin.org/get',
+			{ b: 2 },
+			{
+				cacheFor: 30000,
+			}
+		);
+		const resp1 = await promise1;
+		const promise2 = api.get('https://httpbin.org/get?b=2');
+		const resp2 = await promise2;
+		expect(promise1).toBe(promise2);
+		expect(resp1).toBe(resp2);
+	});
+});

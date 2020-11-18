@@ -14,8 +14,8 @@ class ApiRequest {
 	 * @param {Object} [options]  headers and cacheFor plus options for ky
 	 */
 	constructor(
-		method,
-		endpoint,
+		method = 'GET',
+		endpoint = '',
 		params = undefined,
 		data = undefined,
 		options = undefined
@@ -25,23 +25,23 @@ class ApiRequest {
 			options = {};
 		}
 		const {
-			paramsSerializer,
-			paramsUnserializer,
-			headers,
-			baseURL,
+			paramsSerializer = stringify,
+			paramsUnserializer = parse,
+			headers = {},
+			baseURL = '',
 			...kyOptions
 		} = options;
-		this.paramsSerializer = paramsSerializer || stringify;
-		this.paramsUnserializer = paramsUnserializer || parse;
+		this.paramsSerializer = paramsSerializer;
+		this.paramsUnserializer = paramsUnserializer;
 		this.options = kyOptions;
-		this._processHeaders(headers);
-		this._abortController = new AbortController();
+		this.headers = headers;
 		this.pending = false;
 		this.completed = false;
-		this._method = method;
-		this.endpoint = (baseURL || '') + endpoint;
+		this.method = method;
 		this.params = params;
+		this.endpoint = baseURL + endpoint;
 		this.data = data;
+		this._abortController = new AbortController();
 		this._markComplete = this._markComplete.bind(this);
 	}
 
@@ -50,16 +50,23 @@ class ApiRequest {
 	 * @param {Object|Headers|null} headers  Request headers
 	 * @private
 	 */
-	_processHeaders(headers) {
-		this.headers = {};
+	set headers(headers) {
 		if (headers instanceof Headers) {
-			this.headers = {};
+			this._headers = {};
 			for (const [name, value] of headers) {
-				this.headers[name] = value;
+				this._headers[name] = value;
 			}
 		} else {
-			this.headers = headers || {};
+			this._headers = headers || {};
 		}
+	}
+
+	/**
+	 * Get the headers as a plain object
+	 * @returns {Object}
+	 */
+	get headers() {
+		return this._headers;
 	}
 
 	/**
@@ -67,7 +74,7 @@ class ApiRequest {
 	 * @returns {String}
 	 */
 	get method() {
-		return this._method.toUpperCase();
+		return this._method;
 	}
 
 	/**
@@ -75,7 +82,7 @@ class ApiRequest {
 	 * @param {String} newMethod  The verb to use
 	 */
 	set method(newMethod) {
-		this._method = newMethod;
+		this._method = newMethod.toUpperCase();
 	}
 
 	/**
@@ -91,11 +98,15 @@ class ApiRequest {
 	 * @param {Object|URLSearchParams|String|null} newParams
 	 */
 	set params(newParams) {
-		if (newParams) {
+		if (typeof newParams === 'string' || newParams instanceof URLSearchParams) {
 			this._params = this.paramsUnserializer(newParams);
+		} else if (typeof newParams === 'object') {
+			this._params = newParams;
 		} else {
 			this._params = {};
 		}
+		this._queryString = this.paramsSerializer(this._params);
+		this._url = this._buildUrl(this._url);
 	}
 
 	/**
@@ -103,7 +114,7 @@ class ApiRequest {
 	 * @returns {String}
 	 */
 	get queryString() {
-		return this.paramsSerializer(this._params);
+		return this._queryString;
 	}
 
 	/**
@@ -118,18 +129,18 @@ class ApiRequest {
 	 * Get the full URL including search params
 	 * @returns {String}
 	 */
-	get url() {
-		if (this.endpoint instanceof URL) {
-			return this._finalizeUrl(this.endpoint.toString());
+	_buildUrl(endpointOrUrl) {
+		if (endpointOrUrl instanceof URL) {
+			return this._finalizeUrl(endpointOrUrl.toString());
 		}
 		// URL is already a full URL
 		// or URL has domain but implicit protocol
-		if (/^(https?:\/\/|:\/\/|\/\/)/i.test(this.endpoint)) {
-			return this._finalizeUrl(this.endpoint);
+		if (/^(https?:\/\/|:\/\/|\/\/)/i.test(endpointOrUrl)) {
+			return this._finalizeUrl(endpointOrUrl);
 		}
 		// URL is relative to domain
 		let version = 'v2';
-		const endpoint = String(this.endpoint || '').replace(
+		const endpoint = String(endpointOrUrl || '').replace(
 			/^(?:\/?api)?\/(v\d+)\//,
 			($0, $1) => {
 				version = $1;
@@ -158,7 +169,7 @@ class ApiRequest {
 		} else {
 			const qs = this.queryString;
 			if (qs) {
-				queryString = '?' + this.queryString;
+				queryString = '?' + qs;
 			} else if (search === '') {
 				queryString = '?';
 			}
@@ -168,10 +179,35 @@ class ApiRequest {
 
 	/**
 	 * Set the endpoint or full URL to use
-	 * @param {String} newUrl
+	 * @param {String} endpointOrUrl
 	 */
-	set url(newUrl) {
-		this.endpoint = newUrl;
+	set url(endpointOrUrl) {
+		this._url = this._buildUrl(endpointOrUrl);
+	}
+
+	/**
+	 * Get the full URL
+	 * @returns {String}
+	 */
+	get url() {
+		return this._url;
+	}
+
+	/**
+	 * Set the endpoint and the URL
+	 * @param {String} urlOrEndpoint
+	 */
+	set endpoint(urlOrEndpoint) {
+		this._endpoint = urlOrEndpoint || '';
+		this._url = this._buildUrl(urlOrEndpoint);
+	}
+
+	/**
+	 * Get the endpoint string
+	 * @returns {String}
+	 */
+	get endpoint() {
+		return this._endpoint;
 	}
 
 	/**
