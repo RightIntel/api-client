@@ -190,7 +190,7 @@ describe('ApiService interceptors', () => {
 	it('should accept a GET request interceptor', async () => {
 		const api = new ApiService();
 		const incrementer = request => {
-			request.params = { ...request.params, a: request.params.a + 1 };
+			request.params.a++;
 		};
 		api.addInterceptor({ request: incrementer });
 		const response = await api.get('https://httpbin.org/get', { a: 1 });
@@ -417,7 +417,7 @@ describe('ApiService abort() function', () => {
 			},
 			err => (rejection = err)
 		);
-		const numAborted = api.abort('GET', 'https://httpbin.org/get?e=5');
+		const numAborted = api.abort('GET', 'https://httpbin.org/get');
 		expect(numAborted).toBe(1);
 		setTimeout(() => {
 			expect(didResolve).toBe(false);

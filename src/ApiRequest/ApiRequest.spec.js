@@ -7,7 +7,7 @@ describe('ApiRequest method getter/setter', () => {
 	});
 	it('should be uppercase (set)', () => {
 		const request = new ApiRequest('get');
-		request.method = 'post';
+		request.setMethod('post');
 		expect(request.method).toBe('POST');
 	});
 });
@@ -36,27 +36,27 @@ describe('ApiRequest header getter/setter', () => {
 describe('ApiRequest params getter/setter', () => {
 	it('should convert string to object', () => {
 		const request = new ApiRequest();
-		request.params = 'a=1';
+		request.setParams('a=1');
 		expect(request.params).toEqual({ a: '1' });
 	});
 	it('should convert empty string to empty object', () => {
 		const request = new ApiRequest();
-		request.params = '';
+		request.setParams('');
 		expect(request.params).toEqual({});
 	});
 	it('should ignore leading question marks', () => {
 		const request = new ApiRequest();
-		request.params = '?a=1';
+		request.setParams('?a=1');
 		expect(request.params).toEqual({ a: '1' });
 	});
 	it('should keep object as object', () => {
 		const request = new ApiRequest();
-		request.params = { b: '2' };
+		request.setParams({ b: '2' });
 		expect(request.params).toEqual({ b: '2' });
 	});
 	it('should convert URLSearchParams object', () => {
 		const request = new ApiRequest();
-		request.params = new URLSearchParams({ b: '2' });
+		request.setParams(new URLSearchParams({ b: '2' }));
 		expect(request.params).toEqual({ b: '2' });
 	});
 	it('should allow setting params sub-property', () => {
@@ -69,42 +69,44 @@ describe('ApiRequest params getter/setter', () => {
 describe('ApiRequest queryString getter/setter ', () => {
 	it('should return empty string for empty params', () => {
 		const request = new ApiRequest();
-		request.params = {};
+		request.setParams({});
 		expect(request.queryString).toBe('');
 	});
 	it('Should serialize alphabetically (object)', () => {
 		const request = new ApiRequest();
-		request.params = { b: 2, a: 1 };
+		request.setParams({ b: 2, a: 1 });
 		expect(request.queryString).toBe('a=1&b=2');
 	});
 	it('Should serialize alphabetically (string)', () => {
 		const request = new ApiRequest();
-		request.params = 'b=2&a=1';
+		request.setParams('b=2&a=1');
 		expect(request.queryString).toBe('a=1&b=2');
 	});
 	it('Should encode URL entities', () => {
 		const request = new ApiRequest();
-		request.params = {
+		request.setParams({
 			a: '= ',
-		};
+		});
 		expect(request.queryString).toBe('a=%3D%20');
 	});
 	it('Should handle lists with simple commas', () => {
 		const request = new ApiRequest();
-		request.params = {
+		request.setParams({
 			ab: [1, 2],
-		};
+		});
 		expect(request.queryString).toBe('ab=1,2');
 	});
 	it('Should handle setting to string', () => {
 		const request = new ApiRequest();
-		request.queryString = '?b=2&a=1';
+		request.setQueryString('?b=2&a=1');
 		expect(request.queryString).toBe('a=1&b=2');
+		expect(request.params).toEqual({ b: '2', a: '1' });
 	});
 	it('Should handle setting to object', () => {
 		const request = new ApiRequest();
-		request.queryString = { b: 2, a: 1 };
+		request.setQueryString({ b: 2, a: 1 });
 		expect(request.queryString).toBe('a=1&b=2');
+		expect(request.params).toEqual({ b: 2, a: 1 });
 	});
 });
 
@@ -145,7 +147,7 @@ describe('ApiRequest url getter/setter', () => {
 			{},
 			{ baseURL: 'https://example.com' }
 		);
-		expect(request.url).toBe('https://example.com/a');
+		expect(request.url).toBe('https://example.com/api/v2/a');
 	});
 	it('should allow URL objects', () => {
 		const request = new ApiRequest('get', new URL('https://example.com/a'));
@@ -153,27 +155,27 @@ describe('ApiRequest url getter/setter', () => {
 	});
 	it('should allow setting url to URL object', () => {
 		const request = new ApiRequest();
-		request.url = new URL('https://example.com/a');
+		request.setUrl(new URL('https://example.com/a'));
 		expect(request.url).toBe('https://example.com/a');
 	});
 	it('should allow setting endpoint to update URL', () => {
 		const request = new ApiRequest('get', '');
-		request.endpoint = '/posts';
+		request.setEndpoint('/posts');
 		expect(request.url).toEqual('/api/v2/posts');
 	});
 	it('should handle when endpoint is empty string', () => {
 		const request = new ApiRequest('get', '/abc');
-		request.endpoint = '';
+		request.setEndpoint('');
 		expect(request.url).toBe('/api/v2');
 	});
 	it('should handle when endpoint is false', () => {
 		const request = new ApiRequest('get', '/abc');
-		request.endpoint = false;
+		request.setEndpoint(false);
 		expect(request.url).toBe('/api/v2');
 	});
 	it('should handle when endpoint is null', () => {
 		const request = new ApiRequest('get', '/abc');
-		request.endpoint = null;
+		request.setEndpoint(null);
 		expect(request.url).toBe('/api/v2');
 	});
 	it('should remove hash symbol', () => {
@@ -189,10 +191,6 @@ describe('ApiRequest url getter/setter', () => {
 			a: '1',
 		});
 		expect(request.url).toEqual('/api/v2/abc?a=1');
-	});
-	it('should allow question mark with no params', () => {
-		const request = new ApiRequest('get', '/abc?', {});
-		expect(request.url).toEqual('/api/v2/abc?');
 	});
 	it('should allow setting string params and object params', () => {
 		const request = new ApiRequest('get', '/abc?b=2', {

@@ -16,14 +16,11 @@ class ApiRequest {
 	constructor(
 		method = 'GET',
 		endpoint = '',
-		params = undefined,
-		data = undefined,
-		options = undefined
+		params = {},
+		data = {},
+		options = {}
 	) {
-		// save passed values
-		if (!options) {
-			options = {};
-		}
+		// extract options
 		const {
 			paramsSerializer = stringify,
 			paramsUnserializer = parse,
@@ -31,15 +28,17 @@ class ApiRequest {
 			baseURL = '',
 			...kyOptions
 		} = options;
+		// save passed values
 		this.paramsSerializer = paramsSerializer;
 		this.paramsUnserializer = paramsUnserializer;
 		this.options = kyOptions;
-		this.headers = headers;
+		this.baseURL = baseURL;
+		this.setHeaders(headers);
 		this.pending = false;
 		this.completed = false;
-		this.method = method;
-		this.params = params;
-		this.endpoint = baseURL + endpoint;
+		this.setMethod(method);
+		this.setParams(params);
+		this.setEndpoint(endpoint);
 		this.data = data;
 		this._abortController = new AbortController();
 		this._markComplete = this._markComplete.bind(this);
@@ -48,81 +47,62 @@ class ApiRequest {
 	/**
 	 * Convert incoming headers to object
 	 * @param {Object|Headers|null} headers  Request headers
-	 * @private
 	 */
-	set headers(headers) {
+	setHeaders(headers) {
 		if (headers instanceof Headers) {
-			this._headers = {};
+			this.headers = {};
 			for (const [name, value] of headers) {
-				this._headers[name] = value;
+				this.headers[name] = value;
 			}
 		} else {
-			this._headers = headers || {};
+			this.headers = headers || {};
 		}
-	}
-
-	/**
-	 * Get the headers as a plain object
-	 * @returns {Object}
-	 */
-	get headers() {
-		return this._headers;
-	}
-
-	/**
-	 * Get the HTTP verb in uppercase
-	 * @returns {String}
-	 */
-	get method() {
-		return this._method;
 	}
 
 	/**
 	 * Set the HTTP verb
 	 * @param {String} newMethod  The verb to use
 	 */
-	set method(newMethod) {
-		this._method = newMethod.toUpperCase();
-	}
-
-	/**
-	 * Get the URL search params
-	 * @returns {Object}
-	 */
-	get params() {
-		return this._params;
+	setMethod(newMethod) {
+		this.method = newMethod.toUpperCase();
 	}
 
 	/**
 	 * Set the URL search params
 	 * @param {Object|URLSearchParams|String|null} newParams
 	 */
-	set params(newParams) {
+	setParams(newParams) {
 		if (typeof newParams === 'string' || newParams instanceof URLSearchParams) {
-			this._params = this.paramsUnserializer(newParams);
+			this.params = this.paramsUnserializer(newParams);
 		} else if (typeof newParams === 'object') {
-			this._params = newParams;
+			this.params = newParams;
 		} else {
-			this._params = {};
+			this.params = {};
 		}
-		this._queryString = this.paramsSerializer(this._params);
-		this._url = this._buildUrl(this._url);
-	}
-
-	/**
-	 * Get the query string based on this object's params
-	 * @returns {String}
-	 */
-	get queryString() {
-		return this._queryString;
 	}
 
 	/**
 	 * Set a new query string (same effect as setting params)
 	 * @param {Object|URLSearchParams|String|null} newQueryString
 	 */
-	set queryString(newQueryString) {
-		this.params = newQueryString;
+	setQueryString(newQueryString) {
+		this.setParams(newQueryString);
+	}
+
+	/**
+	 * Get the full URL including baseURL, endpoint, and query params
+	 * @returns {String}
+	 */
+	get url() {
+		return this._buildUrl(this.endpoint);
+	}
+
+	/**
+	 * Get the parameters as a serialized string
+	 * @returns {String}
+	 */
+	get queryString() {
+		return this.paramsSerializer(this.params);
 	}
 
 	/**
@@ -131,12 +111,16 @@ class ApiRequest {
 	 */
 	_buildUrl(endpointOrUrl) {
 		if (endpointOrUrl instanceof URL) {
-			return this._finalizeUrl(endpointOrUrl.toString());
+			endpointOrUrl = endpointOrUrl.toString();
+		}
+		let search = this.queryString;
+		if (search.length > 0) {
+			search = '?' + search;
 		}
 		// URL is already a full URL
 		// or URL has domain but implicit protocol
 		if (/^(https?:\/\/|:\/\/|\/\/)/i.test(endpointOrUrl)) {
-			return this._finalizeUrl(endpointOrUrl);
+			return `${endpointOrUrl}${search}`;
 		}
 		// URL is relative to domain
 		let version = 'v2';
@@ -147,67 +131,44 @@ class ApiRequest {
 				return '/';
 			}
 		);
-		return this._finalizeUrl(`/api/${version}${endpoint}`);
-	}
-
-	/**
-	 * Given an endpoint or URL, add this._params if not empty
-	 * @param {String} url  The endpoint or URL
-	 * @returns {String}
-	 * @private
-	 */
-	_finalizeUrl(url) {
-		// remove any hash value
-		url = url.replace(/#.*$/, '');
-		const [path, search] = url.split('?');
-		let queryString = '';
-		// combine string params with object params
-		if (search) {
-			const urlParams = this.paramsUnserializer(search);
-			const allParams = { ...urlParams, ...this._params };
-			queryString = '?' + this.paramsSerializer(allParams);
-		} else {
-			const qs = this.queryString;
-			if (qs) {
-				queryString = '?' + qs;
-			} else if (search === '') {
-				queryString = '?';
-			}
-		}
-		return path + queryString;
+		return `${this.baseURL}/api/${version}${endpoint}${search}`;
 	}
 
 	/**
 	 * Set the endpoint or full URL to use
-	 * @param {String} endpointOrUrl
+	 * @param {String} urlOrEndpoint
 	 */
-	set url(endpointOrUrl) {
-		this._url = this._buildUrl(endpointOrUrl);
-	}
-
-	/**
-	 * Get the full URL
-	 * @returns {String}
-	 */
-	get url() {
-		return this._url;
+	setUrl(urlOrEndpoint) {
+		this.endpoint = urlOrEndpoint || '';
 	}
 
 	/**
 	 * Set the endpoint and the URL
 	 * @param {String} urlOrEndpoint
 	 */
-	set endpoint(urlOrEndpoint) {
-		this._endpoint = urlOrEndpoint || '';
-		this._url = this._buildUrl(urlOrEndpoint);
-	}
-
-	/**
-	 * Get the endpoint string
-	 * @returns {String}
-	 */
-	get endpoint() {
-		return this._endpoint;
+	setEndpoint(urlOrEndpoint) {
+		// ensure a string
+		this.endpoint = String(urlOrEndpoint || '');
+		// strip of hash marks if needed
+		const hashIndex = this.endpoint.indexOf('#');
+		if (hashIndex > -1) {
+			this.endpoint = this.endpoint.slice(0, hashIndex);
+		}
+		// unserialize params if needed
+		const questionMarkIndex = this.endpoint.indexOf('?');
+		if (questionMarkIndex > -1) {
+			const start = this.endpoint.slice(0, questionMarkIndex);
+			const qs = this.endpoint.slice(questionMarkIndex + 1);
+			this.endpoint = start;
+			if (questionMarkIndex > 0) {
+				const queryParams = this.paramsUnserializer(qs);
+				if (typeof this.params === 'object') {
+					this.params = { ...queryParams, ...this.params };
+				} else {
+					this.params = queryParams;
+				}
+			}
+		}
 	}
 
 	/**
