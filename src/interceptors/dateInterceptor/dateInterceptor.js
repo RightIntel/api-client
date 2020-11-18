@@ -1,7 +1,4 @@
-const moment = require('moment');
-require('moment-parseplus');
-const forEach = require('lodash/forEach');
-const offsetMinutes = new Date().getTimezoneOffset();
+const parser = require('any-date-parser');
 
 const dateInterceptor = {
 	request,
@@ -12,6 +9,10 @@ const dateInterceptor = {
 	fromUtc,
 	mapToUtc,
 	mapFromUtc,
+	zeropad,
+	getOffsetString,
+	format,
+	formatUtc,
 };
 
 module.exports = dateInterceptor;
@@ -55,44 +56,65 @@ function isDateField(fieldName) {
 	);
 }
 
-// convert date string, Date object, or moment object to a string in the format
+// convert date string to a string in the format
 // "2016-01-05T10:38:33-07:00" for consumption by the server
-// i.e. basically moment just adds the "T" in the middle and "-07:00" at the end
 function toUtc(dateStr) {
-	let dateObj = moment(dateStr);
-	if (!dateObj.isValid()) {
+	let dateObj = parser.fromString(dateStr);
+	if (dateObj.invalid) {
 		return dateStr;
 	}
-	return dateObj.format();
+	return format(dateObj);
 }
 
 // recursively iterate an object or array
 // and convert dates to UTC as needed (for the server)
 function mapToUtc(objOrArray) {
-	forEach(objOrArray, (value, key) => {
-		if (typeof value === 'object') {
-			// object or array
-			mapToUtc(value);
-		} else if (
-			typeof value === 'string' &&
-			isDateField(key) &&
-			(value instanceof Date || isDateFormat(value) || value instanceof moment)
-		) {
-			objOrArray[key] = toUtc(value);
+	if (Array.isArray(objOrArray)) {
+		for (const value of objOrArray) {
+			if (typeof value === 'object') {
+				mapToUtc(value);
+			}
 		}
-	});
+	} else if (typeof objOrArray === 'object') {
+		for (const key in objOrArray) {
+			if (!objOrArray.hasOwnProperty(key)) {
+				continue;
+			}
+			const value = objOrArray[key];
+			if (typeof value === 'object') {
+				// another object or array
+				mapToUtc(value);
+				continue;
+			}
+			if (!isDateField(key)) {
+				continue;
+			}
+			if (typeof value === 'string' && isDateFormat(value)) {
+				objOrArray[key] = toUtc(value);
+			} else if (typeof value !== 'object') {
+				continue;
+			}
+			if (value instanceof Date) {
+				objOrArray[key] = format(value);
+			} else if (typeof value.toDate === 'function') {
+				// moment and dayjs
+				objOrArray[key] = format(value.toDate());
+			} else if (typeof value.toJSDate === 'function') {
+				// luxon
+				objOrArray[key] = format(value.toJSDate());
+			}
+		}
+	}
 }
 
-// convert dates from the server into iso8601 format such as
+// convert dates from the server into ISO-8601 format such as
 // "2016-01-05T10:38:33" for consumption by application
 function fromUtc(dateStr) {
-	let dateObj = moment.utc(dateStr);
-	if (!dateObj.isValid()) {
+	let dateObj = parser.fromString(dateStr);
+	if (dateObj.invalid) {
 		return dateStr;
 	}
-	return dateObj
-		.subtract(offsetMinutes, 'minutes')
-		.format('YYYY-MM-DD\\THH:mm:ss');
+	return formatUtc(dateObj);
 }
 
 // recursively iterate an object or array (from the server)
@@ -110,4 +132,36 @@ function mapFromUtc(objOrArray) {
 			objOrArray[key] = fromUtc(value);
 		}
 	});
+}
+
+// pad a number to two digits
+function zeropad(n) {
+	return (n < 10 ? '0' : '') + n;
+}
+
+// given a Number of minutes offset, return an offset string
+function getOffsetString(minutes) {
+	const sign = minutes < 0 ? '+' : '-';
+	minutes = Math.abs(minutes);
+	const h = zeropad(Math.floor(minutes / 60));
+	const m = zeropad(minutes % 60);
+	return `${sign}${h}:${m}`;
+}
+
+// format a date object to ISO-8601 format
+function format(date) {
+	const Y = date.getUTCFullYear();
+	const M = zeropad(date.getUTCMonth() + 1);
+	const D = zeropad(date.getUTCDate());
+	const H = zeropad(date.getUTCHours());
+	const m = zeropad(date.getUTCMinutes());
+	const s = zeropad(date.getUTCSeconds());
+	const o = getOffsetString(date.getTimezoneOffset());
+	return `${Y}-${M}-${D}T${H}:${m}:${s}${o}`;
+}
+
+// shift the date by the runtime's current offset and format it
+function formatUtc(date) {
+	date.setUTCMinutes(date.getUTCMinutes() - date.getTimezoneOffset());
+	return format(date);
 }

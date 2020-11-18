@@ -87,8 +87,8 @@ class ApiService {
 			for (const item of this.pendingRequests) {
 				if (item.promise === promise) {
 					item.request.abort();
+					return 1;
 				}
-				return 1;
 			}
 			return 0;
 		}

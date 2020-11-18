@@ -1,11 +1,15 @@
 const dateInterceptor = require('./dateInterceptor.js');
 const ApiRequest = require('../../ApiRequest/ApiRequest.js');
 const ApiResponse = require('../../ApiResponse/ApiResponse.js');
-const moment = require('moment');
 
-const zeropad = s => (s > 9 ? s : '0' + s);
 const interceptor = dateInterceptor;
-const { isDateField, isDateFormat } = dateInterceptor;
+const {
+	isDateField,
+	isDateFormat,
+	zeropad,
+	format,
+	formatUtc,
+} = dateInterceptor;
 
 describe('isDateFormat()', () => {
 	it('should recognize ISO with milliseconds and timezone', () => {
@@ -68,12 +72,7 @@ describe('isDateField()', () => {
 describe('dateInterceptor requests', () => {
 	it('should transform request data and params', () => {
 		const time1 = '2016-06-01 12:00:00';
-		const offset = new Date(2016, 5, 1).getTimezoneOffset() / 60;
-		const time1Offset =
-			'2016-06-01T12:00:00' +
-			(offset > 0 ? '-' : '+') +
-			zeropad(offset) +
-			':00';
+		const time1Offset = formatUtc(new Date(2016, 5, 1, 12));
 		const data = {
 			created_at: time1,
 			start_date: time1,
@@ -110,12 +109,7 @@ describe('dateInterceptor requests', () => {
 
 	it('should handle URLSearchParams', () => {
 		const time1 = '2016-06-01 12:00:00';
-		const offset = new Date(2016, 5, 1).getTimezoneOffset() / 60;
-		const time1Offset =
-			'2016-06-01T12:00:00' +
-			(offset > 0 ? '-' : '+') +
-			zeropad(offset) +
-			':00';
+		const time1Offset = formatUtc(new Date(2016, 5, 1, 12));
 		const params = new URLSearchParams({ created_at: time1 });
 		let request = new ApiRequest('get', '/', params);
 		interceptor.request(request);
@@ -151,13 +145,12 @@ describe('dateInterceptor requests', () => {
 
 describe('dateInterceptor responses', () => {
 	it('should transform response data', () => {
-		const offset = new Date().getTimezoneOffset();
 		const time1Utc = '2016-06-01T18:00:00+00:00';
-		const processedDate = moment
-			.utc(time1Utc)
-			.subtract(offset, 'minutes')
-			.format()
-			.replace(/Z$/, '');
+		const time1Date = new Date(Date.UTC(2016, 5, 1, 18, 0, 0));
+		time1Date.setUTCMinutes(
+			time1Date.getUTCMinutes() - time1Date.getTimezoneOffset()
+		);
+		const processedDate = format(time1Date);
 		const data = {
 			modified_at: time1Utc,
 			publish_date: time1Utc,
