@@ -1,4 +1,5 @@
 const parser = require('any-date-parser');
+const forEach = require('lodash/forEach');
 
 const dateInterceptor = {
 	request,

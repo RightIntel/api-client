@@ -1,5 +1,6 @@
 const ApiService = require('./ApiService/ApiService.js');
 const api = require('./api.js');
+const fetchMock = require('fetch-mock');
 const {
 	get,
 	post,
@@ -44,5 +45,19 @@ describe('Handle real caching situation', () => {
 		const resp2 = await promise2;
 		expect(promise1).toBe(promise2);
 		expect(resp1).toBe(resp2);
+	});
+});
+describe('Playing nice with fetch-mock', () => {
+	it('should allow mocking responses', async () => {
+		const fakeUrl = 'https://example.com/foo';
+		fetchMock.get(fakeUrl, {
+			body: { bar: 'baz' },
+			headers: {
+				Header1: 'Value1',
+			},
+		});
+		const resp = await api.get(fakeUrl);
+		expect(resp.data).toEqual({ bar: 'baz' });
+		expect(resp.headers.header1).toEqual('Value1');
 	});
 });
