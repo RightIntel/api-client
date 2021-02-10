@@ -57,7 +57,7 @@ Where:
 
 A promise that resolves with `ApiResponse` or rejects with `ApiError`.
 
-## How endpoints work
+## How endpoints and URLs work
 
 On sharpr.com:
 
@@ -65,7 +65,12 @@ On sharpr.com:
 - `/v3/posts/search` Is changed to `https://sharpr.com/api/v3/posts/search`
 - `https://sharprua.com/status/tests.php` Is left alone
 
-For other stacks or vanity domains, the proper domain will be used.
+When using api-client in Node or fetching from external domains, URLs need to
+start with the full domain or else you can set a default using `setBaseURL()`:
+
+```js
+api.setBaseURL('https://example.com');
+```
 
 ## Response API
 
