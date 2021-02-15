@@ -26,12 +26,12 @@ class ApiRequest {
 			paramsUnserializer = parse,
 			headers = {},
 			baseURL = '',
-			...kyOptions
+			...fetchOptions
 		} = options;
 		// save passed values
 		this.paramsSerializer = paramsSerializer;
 		this.paramsUnserializer = paramsUnserializer;
-		this.options = kyOptions;
+		this.options = fetchOptions;
 		this.baseURL = baseURL;
 		this.setHeaders(headers);
 		this.pending = false;

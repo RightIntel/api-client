@@ -198,25 +198,21 @@ class ApiResponse {
 	}
 
 	/**
-	 * Get a object representation of this request/response
-	 * @returns {{request: {headers: ({}|Object), endpoint: string, method: string, payload: {}, options: *}, response: {headers: {}, data: (*|null), statusText: String, dataType: null, text: (String|null), status: Number}}}
+	 * Get a object representation of this response and its request
+	 * @returns {Object}
 	 */
 	debug() {
 		return {
+			status: this.status,
+			statusText: this.statusText,
+			headers: this.headers,
+			data: this.data || this.text,
 			request: {
-				method: this.request._method.toUpperCase(),
+				method: this.request.method,
 				endpoint: this.request.endpoint,
-				payload: this.request._params,
+				payload: this.request.params,
 				options: this.request.options,
 				headers: this.request.headers,
-			},
-			response: {
-				status: this.status,
-				statusText: this.statusText,
-				headers: this.headers,
-				dataType: this.dataType,
-				data: this.data,
-				text: this.text,
 			},
 		};
 	}

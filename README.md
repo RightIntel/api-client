@@ -29,17 +29,16 @@ Use the following key for the origin of each option:
 
 - `[f]` From window.fetch - [docs](https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/fetch)
 - `[S]` Custom Sharpr item
-- `[k]` From ky - [docs](https://github.com/sindresorhus/ky)
 
 ```jsx harmony
 const { request, head, get, post, del, put, patch } = request('api-client');
-request(method, endpoint, params, kyOverrides);
-head(endpoint, params, kyOverrides);
-get(endpoint, params, kyOverrides);
-post(endpoint, payload, kyOverrides);
-del(endpoint, payload, kyOverrides);
-put(endpoint, payload, kyOverrides);
-patch(endpoint, payload, kyOverrides);
+request(method, endpoint, params, options);
+head(endpoint, params, options);
+get(endpoint, params, options);
+post(endpoint, payload, options);
+del(endpoint, payload, options);
+put(endpoint, payload, options);
+patch(endpoint, payload, options);
 ```
 
 Where:
@@ -47,12 +46,9 @@ Where:
 - `{String} method` GET, POST, DELETE, etc. `[f]`
 - `{String} endpoint` The name of the API endpoint such as /posts/123 `[S]`
 - `{Object} [paramsOrData]` For GET requests, the query params; otherwise JSON payload `[S]`
-- `{Object} [kyOverrides]` Additional overrides including { headers } `[k]`
+- `{Object} [options]` Additional overrides including { headers } `[k]`
   - `{Object} headers` Any request headers `[f]`
-  - `{Object} retry` ky retry options (default = no retries) see https://github.com/sindresorhus/ky#retry `[k]`
   - `{Number} timeout` The number of milliseconds after which to time out (default is 5 minutes) `[k]`
-  - `{Boolean} throwHttpErrors` If false, resolve non-2xx responses instead of rejecting (default = true) `[k]`
-  - `{Function} onDownloadProgress: (progress, chunk)` see https://github.com/sindresorhus/ky#ondownloadprogress `[k]`
   - `{Boolean} avoidLoadingBar` If true, do not show loading bar (React only) `[S]`
     Returns:
 
@@ -83,8 +79,7 @@ api.setBaseURL('https://example.com');
   - `{Object} searchParams` params that were serialized into the GET string `[k]`
   - `{Object} headers` Any request headers `[f]`
   - `{*} json` The JSON payload `[k]`
-  - `{Object} retry` ky retry options `[k]`
-  - `{Number} timeout` The number of milliseconds after which to time out `[k]`
+  - `{Number} timeout` The number of milliseconds after which to time out `[S]`
   - `{Boolean} throwHttpErrors` If false, resolve non-2xx responses instead of rejecting `[k]`
   - `{Function} onDownloadProgress: (progress, chunk)` see https://github.com/sindresorhus/ky#ondownloadprogress
   - `{Boolean} avoidLoadingBar` If true, do not show loading bar `[S]`
@@ -130,8 +125,8 @@ api.get('/hello').then(onSuccess, response => {
 
 The following methods are added for convenience:
 
-- `patchDifference(endpoint, oldValues, newValues, kyOverrides)`
-- `submitJob(endpoint, payload, kyOverrides)`
+- `patchDifference(endpoint, oldValues, newValues, options)`
+- `submitJob(endpoint, payload, options)`
 
 ### Examples
 
@@ -187,7 +182,7 @@ abort(promise);
 
 There are some api-related hooks that can be used with React components:
 
-1. `useApiGet(endpoint, params, kyOptions)`
+1. `useApiGet(endpoint, params, options)`
 1. `useApiGetAll(endpointArgSets)`
 1. `useApiEndpoint(verb, endpoint)`
 

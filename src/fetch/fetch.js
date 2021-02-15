@@ -1,15 +1,10 @@
 const isNode =
 	typeof process !== 'undefined' && process.versions && process.versions.node;
-let fetch, AbortController;
 /* istanbul ignore next */
 if (isNode) {
 	// node/jest using shimmed fetch()
-	fetch = require('node-fetch');
-	AbortController = require('abort-controller');
-} else {
-	// browser using native fetch()
-	fetch = window.fetch;
-	AbortController = window.AbortController;
+	globalThis.fetch = require('node-fetch');
+	globalThis.AbortController = require('abort-controller');
 }
 
 function TimeoutError(message) {
@@ -22,7 +17,7 @@ function TimeoutError(message) {
 function fetchWithTimeout(url, options) {
 	if (options.timeout > 0) {
 		return new Promise((resolve, reject) => {
-			const controller = new AbortController();
+			const controller = new globalThis.AbortController();
 			const timeout = setTimeout(() => {
 				controller.abort();
 				reject(new TimeoutError('Request timed out'));
@@ -34,15 +29,15 @@ function fetchWithTimeout(url, options) {
 				});
 			}
 			options.signal = controller.signal;
-			fetch(url, options).then(resolve, reject);
+			globalThis.fetch(url, options).then(resolve, reject);
 		});
 	} else {
-		return fetch(url, options);
+		return globalThis.fetch(url, options);
 	}
 }
 
 module.exports = {
 	fetch: fetchWithTimeout,
-	AbortController,
+	AbortController: globalThis.AbortController,
 	TimeoutError,
 };

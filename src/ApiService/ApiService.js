@@ -5,7 +5,7 @@ const ApiError = require('../ApiError/ApiError.js');
 const ApiRequest = require('../ApiRequest/ApiRequest.js');
 const ApiCache = require('../ApiCache/ApiCache.js');
 const ApiResponse = require('../ApiResponse/ApiResponse.js');
-const { fetch, TimeoutError } = require('../fetch/fetch.js');
+const { TimeoutError } = require('../fetch/fetch.js');
 
 class ApiService {
 	/**
@@ -172,18 +172,24 @@ class ApiService {
 	 * @param {String} method  GET, POST, DELETE, etc.
 	 * @param {String} endpoint  The name of the API endpoint such as /posts/123
 	 * @param {Object|null} [paramsOrData]  For GET requests, the query params; otherwise JSON payload
-	 * @param {Object_null} [kyOverrides]  Additional overrides including headers
+	 * @param {Object_null} [options]  Additional overrides including headers
 	 * @return {Promise<ApiResponse | ApiError>}
 	 */
-	request(method, endpoint, paramsOrData = null, kyOverrides = null) {
+	request(method, endpoint, paramsOrData = null, options = null) {
 		let params, data;
 		if (/^get|head$/i.test(method)) {
 			params = paramsOrData;
 		} else {
 			data = paramsOrData;
 		}
-		const options = { ...this._defaultOptions, ...kyOverrides };
-		const request = new ApiRequest(method, endpoint, params, data, options);
+		const finalOptions = { ...this._defaultOptions, ...options };
+		const request = new ApiRequest(
+			method,
+			endpoint,
+			params,
+			data,
+			finalOptions
+		);
 		// return cached promise if available
 		let cached = this.cache.find(request);
 		if (cached) {
@@ -374,66 +380,66 @@ class ApiService {
 	 * Make a GET request to the specified endpoint
 	 * @param {String|URL} endpoint  The endpoint such as "/posts/123"
 	 * @param {Object} [params]  Parameters to send in the query string
-	 * @param {Object} [kyOverrides]  Values to override ky request
+	 * @param {Object} [options]  Values to override ky request
 	 * @returns {Promise}  Resolves with the ApiResponse and rejects with ApiError
 	 */
-	get(endpoint, params = {}, kyOverrides = {}) {
-		return this.request('get', endpoint, params, kyOverrides);
+	get(endpoint, params = {}, options = {}) {
+		return this.request('get', endpoint, params, options);
 	}
 
 	/**
 	 * Make a HEAD request to the specified endpoint
 	 * @param {String|URL} endpoint  The endpoint such as "/posts/123"
 	 * @param {Object} [params]  Parameters to send in the query string
-	 * @param {Object} [kyOverrides]  Values to override ky request
+	 * @param {Object} [options]  Values to override ky request
 	 * @returns {Promise}  Resolves with the ApiResponse and rejects with ApiError
 	 */
-	head(endpoint, params = {}, kyOverrides = {}) {
-		return this.request('head', endpoint, params, kyOverrides);
+	head(endpoint, params = {}, options = {}) {
+		return this.request('head', endpoint, params, options);
 	}
 
 	/**
 	 * Make a POST request to the specified endpoint
 	 * @param {String|URL} endpoint  The endpoint such as "/posts"
 	 * @param {Object} [payload]  Data to send in the post body
-	 * @param {Object} [kyOverrides]  Values to override ky request
+	 * @param {Object} [options]  Values to override ky request
 	 * @returns {Promise}  Resolves with the ApiResponse and rejects with ApiError
 	 */
-	post(endpoint, payload = {}, kyOverrides = {}) {
-		return this.request('post', endpoint, payload, kyOverrides);
+	post(endpoint, payload = {}, options = {}) {
+		return this.request('post', endpoint, payload, options);
 	}
 
 	/**
 	 * Make a PUT request to the specified endpoint
 	 * @param {String|URL} endpoint  The endpoint such as "/posts/123/keywords"
 	 * @param {Object} [payload]  Data to send in the post body
-	 * @param {Object} [kyOverrides]  Values to override ky request
+	 * @param {Object} [options]  Values to override ky request
 	 * @returns {Promise}  Resolves with the ApiResponse and rejects with ApiError
 	 */
-	put(endpoint, payload = {}, kyOverrides = {}) {
-		return this.request('put', endpoint, payload, kyOverrides);
+	put(endpoint, payload = {}, options = {}) {
+		return this.request('put', endpoint, payload, options);
 	}
 
 	/**
 	 * Make a PATCH request to the specified endpoint
 	 * @param {String|URL} endpoint  The endpoint such as "/posts/123"
 	 * @param {Object} [payload]  Parameters to send in the patch payload
-	 * @param {Object} [kyOverrides]  Values to override ky request
+	 * @param {Object} [options]  Values to override ky request
 	 * @returns {Promise}  Resolves with the ApiResponse and rejects with ApiError
 	 */
-	patch(endpoint, payload = {}, kyOverrides = {}) {
-		return this.request('patch', endpoint, payload, kyOverrides);
+	patch(endpoint, payload = {}, options = {}) {
+		return this.request('patch', endpoint, payload, options);
 	}
 
 	/**
 	 * Make a DELETE request to the specified endpoint
 	 * @param {String|URL} endpoint  The endpoint such as "/posts/123"
 	 * @param {Object} [payload]  Parameters to send in the delete payload
-	 * @param {Object} [kyOverrides]  Values to override ky request
+	 * @param {Object} [options]  Values to override ky request
 	 * @returns {Promise}  Resolves with the ApiResponse and rejects with ApiError
 	 */
-	delete(endpoint, payload = {}, kyOverrides = {}) {
-		return this.request('delete', endpoint, payload, kyOverrides);
+	delete(endpoint, payload = {}, options = {}) {
+		return this.request('delete', endpoint, payload, options);
 	}
 
 	/**
@@ -441,11 +447,11 @@ class ApiService {
 	 * @param {String|URL} endpoint  The endpoint such as "/posts/123"
 	 * @param {Object} oldValues  Values before
 	 * @param {Object} newValues
-	 * @param {Object} [kyOverrides]  Values to override ky request
+	 * @param {Object} [options]  Values to override ky request
 	 * @returns {Promise}  Resolves with null if no change is needed
 	 *     or else the ApiResponse and rejects with ApiError
 	 */
-	async patchDifference(endpoint, oldValues, newValues, kyOverrides = {}) {
+	async patchDifference(endpoint, oldValues, newValues, options = {}) {
 		const diff = {};
 		let hasChanges = false;
 		for (const prop in newValues) {
@@ -465,7 +471,7 @@ class ApiService {
 				response: null,
 			};
 		}
-		const response = await this.request('PATCH', endpoint, diff, kyOverrides);
+		const response = await this.request('PATCH', endpoint, diff, options);
 		return {
 			diff,
 			hasChanges,
@@ -478,7 +484,7 @@ class ApiService {
 	 * to be notified when the job is complete
 	 * @param {String|URL} endpoint  The endpoint such as "/posts/123"
 	 * @param {Object} [payload]  Parameters to send in the delete payload
-	 * @param {Object} [kyOverrides]  Values to override ky request
+	 * @param {Object} [options]  Values to override ky request
 	 * @returns {Promise}  Resolves with the ApiResponse and rejects with ApiError
 	 * The ApiResponse will have an extra method onJobComplete:
 	 * 		ApiResponse#onJobComplete(
@@ -487,12 +493,12 @@ class ApiService {
 	 * 			{Number} [timeout=1800000] // milliseconds after which to give up
 	 * 		);
 	 */
-	submitJob(endpoint, payload = {}, kyOverrides = {}) {
-		if (!kyOverrides.headers) {
-			kyOverrides.headers = {};
+	submitJob(endpoint, payload = {}, options = {}) {
+		if (!options.headers) {
+			options.headers = {};
 		}
-		kyOverrides.headers['Submit-As-Job'] = '1';
-		return this.post(endpoint, payload, kyOverrides).then(
+		options.headers['Submit-As-Job'] = '1';
+		return this.post(endpoint, payload, options).then(
 			response => {
 				if (response.status !== 202) {
 					return;
