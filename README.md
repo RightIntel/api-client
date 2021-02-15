@@ -9,6 +9,7 @@ Similar to our Angular ApiProvider but more intuitive. Target uses include:
 - New React code
 - API v4 endpoints written in JavaScript
 - API integration testing (v2, v3, v4)
+- Single-use scripts for reports or importing data (e.g. queries repo)
 
 ## Table of Contents
 

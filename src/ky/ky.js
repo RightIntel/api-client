@@ -4,7 +4,7 @@ const isNode =
 /* istanbul ignore next */
 if (isNode) {
 	// node/jest using shimmed fetch()
-	ky = require('ky-universal');
+	fetch = require('node-fetch');
 } else {
 	// browser using native fetch()
 	ky = require('ky');

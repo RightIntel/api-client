@@ -5,7 +5,7 @@ const ApiError = require('../ApiError/ApiError.js');
 const ApiRequest = require('../ApiRequest/ApiRequest.js');
 const ApiCache = require('../ApiCache/ApiCache.js');
 const ApiResponse = require('../ApiResponse/ApiResponse.js');
-const ky = require('../ky/ky.js');
+const { fetch, TimeoutError } = require('../fetch/fetch.js');
 
 class ApiService {
 	/**
@@ -198,9 +198,9 @@ class ApiService {
 				this.pendingRequests.splice(idx, 1);
 			}
 		};
-		const kyPromise = request.send();
-		kyPromise.then(removePending, removePending);
-		const promise = kyPromise.then(
+		const fetchPromise = request.send();
+		fetchPromise.then(removePending, removePending);
+		const promise = fetchPromise.then(
 			this._getSuccessHandler(request),
 			this._getErrorHandler(request)
 		);
@@ -246,14 +246,7 @@ class ApiService {
 			if (error.type === 'aborted') {
 				// aborted by the user
 				return Promise.reject(this._handleAborted(request, error));
-			} else if (error instanceof ky.HTTPError) {
-				// a non 2xx status code
-				return this._handleHttpError(request, error).then(
-					apiError => Promise.reject(apiError),
-					/* istanbul ignore next */
-					shouldNeverHappen => shouldNeverHappen
-				);
-			} else if (error instanceof ky.TimeoutError) {
+			} else if (error instanceof TimeoutError) {
 				// endpoint took too long to return
 				return Promise.reject(this._handleTimeout(request, error));
 			} else if (

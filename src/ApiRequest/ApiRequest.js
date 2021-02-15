@@ -1,8 +1,8 @@
 const { stringify, parse } = require('../SearchParams/SearchParams.js');
-const ky = require('../ky/ky.js');
+const { fetch, AbortController } = require('../fetch/fetch.js');
 
 /**
- * A class to wrap the ky request
+ * A class to wrap the fetch request
  */
 class ApiRequest {
 	/**
@@ -185,20 +185,18 @@ class ApiRequest {
 	 * @returns {Promise<Response>}
 	 */
 	send() {
-		const request = {
+		const options = {
 			method: this.method,
 			headers: this.headers,
 			signal: this._abortController.signal,
-			retry: { limit: 0 },
-			throwHttpErrors: true,
 			timeout: 5 * 60 * 1000,
 			...this.options,
 		};
 		if (!['GET', 'HEAD'].includes(this.method)) {
-			request.json = this.data;
+			options.json = this.data;
 		}
 		this.pending = true;
-		this.promise = ky(this.url, request);
+		this.promise = fetch(this.url, options);
 		this.promise.then(this._markComplete, this._markComplete);
 		return this.promise;
 	}
