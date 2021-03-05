@@ -5,7 +5,7 @@ const ApiError = require('../ApiError/ApiError.js');
 const ApiRequest = require('../ApiRequest/ApiRequest.js');
 const ApiCache = require('../ApiCache/ApiCache.js');
 const ApiResponse = require('../ApiResponse/ApiResponse.js');
-const { TimeoutError } = require('../fetch/fetch.js');
+const { TimeoutError, HTTPError } = require('../fetch/fetch.js');
 
 class ApiService {
 	/**
@@ -200,6 +200,7 @@ class ApiService {
 		});
 		const removePending = () => {
 			const idx = this.pendingRequests.indexOf(request);
+			// istanbul ignore next
 			if (idx > -1) {
 				this.pendingRequests.splice(idx, 1);
 			}
@@ -226,6 +227,9 @@ class ApiService {
 	 */
 	_getSuccessHandler(request) {
 		return async rawResponse => {
+			if (!rawResponse.ok) {
+				return this._throwHttpError(request, rawResponse);
+			}
 			const { type, data, text } = await this._readResponseData(rawResponse);
 			const response = new ApiResponse({
 				request,
@@ -234,6 +238,7 @@ class ApiService {
 				data,
 				text,
 			});
+			request.response = response;
 			this.interceptors.response.forEach(interceptor => {
 				interceptor(request, response, this);
 			});
@@ -268,24 +273,25 @@ class ApiService {
 	/**
 	 * Handle a response from an HTTP Error
 	 * @param {ApiRequest} request  The request object
-	 * @param {Error} error  The JavaScript Error object
+	 * @param {Response} rawResponse  The fetch Response object
 	 * @returns {ApiError}
 	 * @private
 	 */
-	async _handleHttpError(request, error) {
-		const { type, data, text } = await this._readResponseData(error.response);
+	async _throwHttpError(request, rawResponse) {
+		const { type, data, text } = await this._readResponseData(rawResponse);
 		const response = new ApiError({
-			error,
+			error: new HTTPError(rawResponse.statusText),
 			request,
-			response: error.response,
+			response: rawResponse,
 			type,
 			data,
 			text,
 		});
+		request.response = response;
 		this.interceptors.error.forEach(interceptor => {
 			interceptor(request, response, this);
 		});
-		return response;
+		throw response;
 	}
 
 	/**
@@ -296,8 +302,8 @@ class ApiService {
 	 * @private
 	 */
 	_handleTimeout(request, error) {
-		// error.type = 'timeout';
 		const response = new ApiError({ error, request });
+		request.response = response;
 		this.interceptors.timeout.forEach(interceptor => {
 			interceptor(request, response, this);
 		});
@@ -313,8 +319,9 @@ class ApiService {
 	 */
 	_handleAborted(request, error) {
 		// error will be:
-		// AbortError { type: 'aborted', message: 'The user aborted a request.' }
-		const response = new ApiError({ error, request });
+		// AbortError { name: 'AbortError', message: 'The user aborted a request.' }
+		const response = new ApiError({ error, request, wasAborted: true });
+		request.response = response;
 		this.interceptors.abort.forEach(interceptor => {
 			interceptor(request, response, this);
 		});
@@ -331,6 +338,7 @@ class ApiService {
 	_handleOtherError(request, error) {
 		// FetchError { 'messsage': 'request to ... failed, reason: getaddrinfo ENOTFOUND ...' }
 		const response = new ApiError({ error, request });
+		request.response = response;
 		this.interceptors.error.forEach(interceptor => {
 			interceptor(request, response, this);
 		});

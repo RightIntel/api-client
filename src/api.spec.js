@@ -78,7 +78,7 @@ describe('ApiResponse#debug()', () => {
 		expect(debug.data.args).toEqual({ b: 'two' });
 		expect(debug.request.method).toBe('GET');
 		expect(debug.request.endpoint).toBe('https://httpbin.org/get');
-		expect(debug.request.payload).toEqual({ b: 'two' });
+		expect(debug.request.params).toEqual({ b: 'two' });
 		expect(debug.request.headers.hello).toBe('world');
 	});
 });

@@ -7,8 +7,8 @@ const { fetch, AbortController } = require('../fetch/fetch.js');
 class ApiRequest {
 	/**
 	 * Initialize request but don't yet run it
-	 * @param {String} method  The HTTP verb
-	 * @param {String} endpoint  The API endpoint or full URL
+	 * @param {String} [method]  The HTTP verb
+	 * @param {String} [endpoint]  The API endpoint or full URL
 	 * @param {Object|String|URLSearchParams} [params]  The URL params
 	 * @param {Object} [data]  Payload to send in request body
 	 * @param {Object} [options]  headers and cacheFor plus options for ky
@@ -20,6 +20,8 @@ class ApiRequest {
 		data = {},
 		options = {}
 	) {
+		// auto-bind callbacks
+		this._markComplete = this._markComplete.bind(this);
 		// extract options
 		const {
 			paramsSerializer = stringify,
@@ -28,20 +30,58 @@ class ApiRequest {
 			baseURL = '',
 			...fetchOptions
 		} = options;
-		// save passed values
+		/**
+		 * @var {Function}  The function that will serialize param objects to string
+		 */
 		this.paramsSerializer = paramsSerializer;
+		/**
+		 * @var {Function}  The function that will parse param strings into objects
+		 */
 		this.paramsUnserializer = paramsUnserializer;
+		/**
+		 * @var {Object}  The options that were passed to fetch()
+		 */
 		this.options = fetchOptions;
+		/**
+		 * @var {String}
+		 */
 		this.baseURL = baseURL;
+		/**
+		 * @var {Object}
+		 */
 		this.setHeaders(headers);
+		/**
+		 * @var {Boolean}  True if request is in progress
+		 */
 		this.pending = false;
+		/**
+		 * @var {Boolean}  True if request has completed
+		 */
 		this.completed = false;
+		/**
+		 * @var {String} method  The HTTP verb in upper case
+		 */
 		this.setMethod(method);
+		/**
+		 * @var {Object}  A plain object containing the query string params
+		 */
 		this.setParams(params);
+		/**
+		 * @var {String}  The endpoint or URL
+		 */
 		this.setEndpoint(endpoint);
+		/**
+		 * @var {Object}  The request payload (POST, PUT, PATCH, DELETE, etc)
+		 */
 		this.data = data;
+		/**
+		 * @var {AbortController}  The object that lets us call abort()
+		 */
 		this._abortController = new AbortController();
-		this._markComplete = this._markComplete.bind(this);
+		/**
+		 * @var {ApiResponse}  Set by ApiService when response is complete
+		 */
+		this.response = null;
 	}
 
 	/**
@@ -74,7 +114,7 @@ class ApiRequest {
 	setParams(newParams) {
 		if (typeof newParams === 'string' || newParams instanceof URLSearchParams) {
 			this.params = this.paramsUnserializer(newParams);
-		} else if (typeof newParams === 'object') {
+		} else if (newParams && typeof newParams === 'object') {
 			this.params = newParams;
 		} else {
 			this.params = {};
@@ -149,7 +189,7 @@ class ApiRequest {
 	setEndpoint(urlOrEndpoint) {
 		// ensure a string
 		this.endpoint = String(urlOrEndpoint || '');
-		// strip of hash marks if needed
+		// strip off hash mark if needed
 		const hashIndex = this.endpoint.indexOf('#');
 		if (hashIndex > -1) {
 			this.endpoint = this.endpoint.slice(0, hashIndex);
@@ -162,7 +202,7 @@ class ApiRequest {
 			this.endpoint = start;
 			if (questionMarkIndex > 0) {
 				const queryParams = this.paramsUnserializer(qs);
-				if (typeof this.params === 'object') {
+				if (this.params && typeof this.params === 'object') {
 					this.params = { ...queryParams, ...this.params };
 				} else {
 					this.params = queryParams;
@@ -192,13 +232,38 @@ class ApiRequest {
 			timeout: 5 * 60 * 1000,
 			...this.options,
 		};
-		if (!['GET', 'HEAD'].includes(this.method)) {
-			options.json = this.data;
+		if (!['GET', 'HEAD'].includes(this.method) && options.body === undefined) {
+			options.body = JSON.stringify(this.data);
 		}
 		this.pending = true;
 		this.promise = fetch(this.url, options);
 		this.promise.then(this._markComplete, this._markComplete);
 		return this.promise;
+	}
+
+	/**
+	 * Return a simple representation of request and response
+	 * @returns {Object}
+	 */
+	debug() {
+		const debugged = {
+			method: this.method,
+			endpoint: this.endpoint,
+			params: this.params,
+			data: this.data,
+			options: this.options,
+			headers: this.headers,
+			response: null,
+		};
+		if (this.promise && this.response) {
+			debugged.response = {
+				status: this.response.status,
+				statusText: this.response.statusText,
+				headers: this.response.headers,
+				data: this.response.data || this.response.text,
+			};
+		}
+		return debugged;
 	}
 
 	/**

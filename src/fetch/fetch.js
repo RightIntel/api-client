@@ -2,18 +2,28 @@ const isNode =
 	typeof process !== 'undefined' && process.versions && process.versions.node;
 /* istanbul ignore next */
 if (isNode) {
-	// node/jest using shimmed fetch()
+	// TODO: check if tree shaking works properly. If not, try process.env.BROWSER
+	// add polyfills for node/jest
 	globalThis.fetch = require('node-fetch');
 	globalThis.AbortController = require('abort-controller');
 }
 
-function TimeoutError(message) {
-	this.constructor.prototype.__proto__ = Error.prototype;
-	Error.captureStackTrace(this, this.constructor);
-	this.name = this.constructor.name;
-	this.message = message;
-}
+/**
+ * Error that rejects when response has taken longer than the given timeout
+ */
+class TimeoutError extends Error {}
 
+/**
+ * Error that rejects when response is 4xx or 5xx
+ */
+class HTTPError extends Error {}
+
+/**
+ * A version of fetch that accepts a number for options.timeout
+ * @param {String} url  The URL to fetch
+ * @param {Object} options  fetch options including timeout
+ * @returns {Promise}
+ */
 function fetchWithTimeout(url, options) {
 	if (options.timeout > 0) {
 		return new Promise((resolve, reject) => {
@@ -40,4 +50,5 @@ module.exports = {
 	fetch: fetchWithTimeout,
 	AbortController: globalThis.AbortController,
 	TimeoutError,
+	HTTPError,
 };

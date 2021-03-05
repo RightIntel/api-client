@@ -2,7 +2,7 @@ const ApiService = require('./ApiService.js');
 const ApiRequest = require('../ApiRequest/ApiRequest.js');
 const ApiResponse = require('../ApiResponse/ApiResponse.js');
 const ApiError = require('../ApiError/ApiError.js');
-const { fetch, AbortController, TimeoutError } = require('../fetch/fetch.js');
+const { TimeoutError, HTTPError } = require('../fetch/fetch.js');
 
 describe('ApiService class', () => {
 	it('should be instantiable', () => {
@@ -123,14 +123,14 @@ describe('ApiService other named functions', () => {
 			response: null,
 		});
 	});
-	// TODO: submitJob using fetchmock
 });
 
 describe('ApiService errors', () => {
 	it('should handle an invalid domain', async () => {
+		expect.assertions(3);
 		const api = new ApiService();
 		try {
-			await api.get('https://nobody-soup/abc');
+			await api.get('https://nobody_soup/abc');
 		} catch (rejection) {
 			expect(rejection).toBeInstanceOf(ApiError);
 			expect(rejection.error).toBeInstanceOf(Error);
@@ -139,6 +139,7 @@ describe('ApiService errors', () => {
 	});
 
 	it('should throw on bad protocols', async () => {
+		expect.assertions(1);
 		const api = new ApiService();
 		try {
 			await api.get('abc://unvalid');
@@ -147,11 +148,12 @@ describe('ApiService errors', () => {
 		}
 	});
 
-	xit('should reject timeouts', async () => {
+	it('should reject timeouts', async () => {
+		expect.assertions(3);
 		const api = new ApiService();
 		try {
-			await api.get('https://httpbin.org/delay/2', null, {
-				timeout: 1000,
+			await api.get('https://httpbin.org/delay/1', null, {
+				timeout: 100,
 			});
 		} catch (rejection) {
 			expect(rejection).toBeInstanceOf(ApiError);
@@ -159,9 +161,17 @@ describe('ApiService errors', () => {
 			expect(rejection.ok).toBe(false);
 		}
 	});
+
+	it('should interpret 0 timeout as infinite', async () => {
+		const api = new ApiService();
+		const response = await api.get('https://httpbin.org/delay/1', null, {
+			timeout: 0,
+		});
+		expect(response.status).toBe(200);
+	});
 });
 
-xdescribe('ApiService interceptors', () => {
+describe('ApiService interceptors', () => {
 	it('should accept a GET request interceptor with headers', async () => {
 		expect.assertions(2);
 		const api = new ApiService();
@@ -221,7 +231,7 @@ xdescribe('ApiService interceptors', () => {
 	});
 
 	it('should accept an error interceptor', async () => {
-		expect.assertions(2);
+		expect.assertions(3);
 		const api = new ApiService();
 		let req, res;
 		api.addInterceptor({
@@ -235,9 +245,9 @@ xdescribe('ApiService interceptors', () => {
 		} catch (rejection) {
 			expect(req).toBeInstanceOf(ApiRequest);
 			expect(res).toBeInstanceOf(ApiError);
+			expect(rejection.error).toBeInstanceOf(HTTPError);
 		}
 	});
-	// TODO: use fetchmock to trigger error handler for other error
 	it('should accept an abort interceptor', done => {
 		expect.assertions(2);
 		const api = new ApiService();
@@ -271,7 +281,7 @@ xdescribe('ApiService interceptors', () => {
 
 describe('ApiService abort() function', () => {
 	it('should abort by abort() method', async () => {
-		expect.assertions(3);
+		expect.assertions(4);
 		const api = new ApiService();
 		const promise = api.get('https://httpbin.org/get?a=1');
 		expect(typeof promise.abort).toBe('function');
@@ -280,6 +290,7 @@ describe('ApiService abort() function', () => {
 			await promise;
 		} catch (rejection) {
 			expect(rejection).toBeInstanceOf(ApiError);
+			expect(rejection.wasAborted).toBe(true);
 			expect(rejection.error).toBeInstanceOf(Error);
 		}
 	});
@@ -432,6 +443,12 @@ describe('ApiService abort() function', () => {
 			done();
 		}, 100);
 	});
+
+	it('should return 0 when abort promise is not found', () => {
+		const api = new ApiService();
+		const numAborted = api.abort(Promise.resolve('foo'));
+		expect(numAborted).toBe(0);
+	});
 });
 
 describe('ApiService caching', () => {
@@ -502,5 +519,100 @@ describe('ApiService default options', () => {
 		api.setBaseURL('https://example.com/api');
 		const base = api.getBaseURL();
 		expect(base).toBe('https://example.com/api');
+	});
+});
+
+describe('ApiService debugging', () => {
+	it('should debug successful responses', async () => {
+		const api = new ApiService();
+		const response = await api.post(
+			'https://httpbin.org/status/204',
+			{ foo: 'bar' },
+			{
+				headers: {
+					Baz: 'Qux',
+				},
+			}
+		);
+		expect(response.debug()).toMatchSnapshot({
+			headers: { date: expect.any(String), server: expect.any(String) },
+		});
+	});
+	it('should debug error responses', async () => {
+		expect.assertions(1);
+		const api = new ApiService();
+		try {
+			await api.get(
+				'https://httpbin.org/status/500',
+				{ a: '1' },
+				{ headers: { b: '2' } }
+			);
+		} catch (rejection) {
+			expect(rejection.debug()).toMatchSnapshot({
+				headers: { date: expect.any(String), server: expect.any(String) },
+			});
+		}
+	});
+});
+
+describe('ApiRequest debugging', () => {
+	it('should debug successful responses', async () => {
+		expect.assertions(1);
+		const api = new ApiService();
+		api.addInterceptor({
+			response: request => {
+				expect(request.debug()).toMatchSnapshot({
+					response: {
+						data: {
+							headers: {
+								'User-Agent': expect.any(String),
+								'X-Amzn-Trace-Id': expect.any(String),
+							},
+							origin: expect.any(String),
+						},
+						headers: {
+							date: expect.any(String),
+							server: expect.any(String),
+						},
+					},
+				});
+			},
+		});
+		await api.get(
+			'https://httpbin.org/get',
+			{ foo: 'bar' },
+			{
+				headers: {
+					Baz: 'Qux',
+				},
+			}
+		);
+	});
+	it('should debug error responses', async () => {
+		expect.assertions(1);
+		const api = new ApiService();
+		api.addInterceptor({
+			error: request => {
+				expect(request.debug()).toMatchSnapshot({
+					response: {
+						headers: {
+							date: expect.any(String),
+							server: expect.any(String),
+						},
+					},
+				});
+			},
+		});
+		try {
+			await api.get(
+				'https://httpbin.org/status/400',
+				{ foo: 'bar' },
+				{
+					headers: {
+						Baz: 'Qux',
+					},
+				}
+			);
+		} catch (e) {}
 	});
 });

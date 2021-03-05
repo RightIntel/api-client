@@ -20,6 +20,7 @@ class ApiResponse {
 		type = null,
 		data = null,
 		text = null,
+		wasAborted = false,
 	}) {
 		/**
 		 * @var {ApiRequest|Object} request  The ApiRequest that generated this response
@@ -195,6 +196,12 @@ class ApiResponse {
 		 * @var {Number}
 		 */
 		this.time = parseFloat(this.headers['api-response-time']) || 0;
+
+		/**
+		 * True if response comes from aborted request
+		 * @type {Boolean}
+		 */
+		this.wasAborted = !!wasAborted;
 	}
 
 	/**
@@ -210,9 +217,10 @@ class ApiResponse {
 			request: {
 				method: this.request.method,
 				endpoint: this.request.endpoint,
-				payload: this.request.params,
-				options: this.request.options,
+				params: this.request.params,
+				data: this.request.data,
 				headers: this.request.headers,
+				options: this.request.options,
 			},
 		};
 	}
@@ -234,6 +242,7 @@ class ApiResponse {
 			}
 		} else if (typeof headers === 'object') {
 			for (const name in headers) {
+				// istanbul ignore next
 				if (!headers.hasOwnProperty(name)) {
 					continue;
 				}

@@ -64,6 +64,12 @@ describe('ApiRequest params getter/setter', () => {
 		request.params.b = '2';
 		expect(request.params).toEqual({ b: '2' });
 	});
+	it('should allow setting params to null', () => {
+		const request = new ApiRequest('get', '/abc', {});
+		request.setParams({ a: 'one' });
+		request.setParams(null);
+		expect(request.params).toEqual({});
+	});
 });
 
 describe('ApiRequest queryString getter/setter ', () => {
@@ -177,6 +183,13 @@ describe('ApiRequest url getter/setter', () => {
 		const request = new ApiRequest('get', '/abc');
 		request.setEndpoint(null);
 		expect(request.url).toBe('/api/v2');
+	});
+	it('should handle endpoints that contain query params', () => {
+		const request = new ApiRequest('get', '/abc');
+		request.params = null;
+		request.setEndpoint('/foo?a=one');
+		expect(request.params).toEqual({ a: 'one' });
+		expect(request.url).toBe('/api/v2/foo?a=one');
 	});
 	it('should remove hash symbol', () => {
 		const request = new ApiRequest('get', '/abc#');

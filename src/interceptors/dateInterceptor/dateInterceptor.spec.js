@@ -1,73 +1,9 @@
 const dateInterceptor = require('./dateInterceptor.js');
+const { format, formatUtc } = require('../../dateUtils/dateUtils.js');
 const ApiRequest = require('../../ApiRequest/ApiRequest.js');
 const ApiResponse = require('../../ApiResponse/ApiResponse.js');
 
 const interceptor = dateInterceptor;
-const {
-	isDateField,
-	isDateFormat,
-	zeropad,
-	format,
-	formatUtc,
-} = dateInterceptor;
-
-describe('isDateFormat()', () => {
-	it('should recognize ISO with milliseconds and timezone', () => {
-		expect(isDateFormat('2016-01-05T10:38:33.000+00:00')).toBe(true);
-	});
-
-	it('should recognize ISO with timezone', () => {
-		expect(isDateFormat('2016-01-05T10:38:33+00:00')).toBe(true);
-	});
-
-	it('should recognize ISO with milliseconds', () => {
-		expect(isDateFormat('2016-01-05T10:38:33.000Z')).toBe(true);
-	});
-
-	it('should recognize ISO with a Z', () => {
-		expect(isDateFormat('2016-01-05T10:38:33Z')).toBe(true);
-	});
-
-	it('should recognize ISO without a T', () => {
-		expect(isDateFormat('2016-01-05 10:38:33')).toBe(true);
-	});
-
-	it('should not recognize dates without times', () => {
-		expect(isDateFormat('2016-01-05')).toBe(false);
-	});
-});
-
-describe('isDateField()', () => {
-	it('should not recognize moo', () => {
-		expect(isDateField('moo')).toBe(false);
-	});
-
-	it('should recognize *_at', () => {
-		expect(isDateField('created_at')).toBe(true);
-		expect(isDateField('modified_at')).toBe(true);
-		expect(isDateField('deleted_at')).toBe(true);
-		expect(isDateField('hello_at')).toBe(true);
-		expect(isDateField('at')).toBe(false);
-	});
-
-	it('should recognize *_date', () => {
-		expect(isDateField('happy_date')).toBe(true);
-		expect(isDateField('something_date')).toBe(true);
-	});
-
-	it('should recognize date_*', () => {
-		expect(isDateField('date_created')).toBe(true);
-		expect(isDateField('date_moo')).toBe(true);
-	});
-
-	it('should recognize specials', () => {
-		expect(isDateField('created')).toBe(true);
-		expect(isDateField('last_login')).toBe(true);
-		expect(isDateField('send_on')).toBe(true);
-		expect(isDateField('start')).toBe(true);
-		expect(isDateField('end')).toBe(true);
-	});
-});
 
 describe('dateInterceptor requests', () => {
 	it('should transform request data and params', () => {
