@@ -1,5 +1,6 @@
 const getObjectSize = require('lodash/size');
 const isEmptyObject = require('lodash/isEmpty');
+const tryJson = require('../tryJson/tryJson.js');
 
 /**
  * A class representing an API response from ApiService
@@ -176,14 +177,13 @@ class ApiResponse {
 		 * Notices reported by the API
 		 * @var {Array}
 		 */
-		this.notices =
-			JSON.parse(this.headers['api-response-notices'] || '[]') || [];
+		this.notices = tryJson.parse(this.headers['api-response-notices'], []);
 
 		/**
 		 * Errors reported by the API
 		 * @var {Array}
 		 */
-		this.errors = JSON.parse(this.headers['api-response-errors'] || '[]') || [];
+		this.errors = tryJson.parse(this.headers['api-response-errors'], []);
 
 		/**
 		 * The APIs response id UUID

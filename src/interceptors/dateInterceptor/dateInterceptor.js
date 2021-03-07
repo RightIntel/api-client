@@ -62,6 +62,7 @@ function mapToUtc(objOrArray) {
 			} else if (typeof value !== 'object') {
 				continue;
 			}
+			// istanbul ignore next
 			if (value instanceof Date) {
 				objOrArray[key] = format(value);
 			} else if (typeof value.toDate === 'function') {

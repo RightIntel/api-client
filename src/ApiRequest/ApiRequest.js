@@ -1,5 +1,6 @@
 const { stringify, parse } = require('../SearchParams/SearchParams.js');
 const { fetch, AbortController } = require('../fetch/fetch.js');
+const tryJson = require('../tryJson/tryJson.js');
 
 /**
  * A class to wrap the fetch request
@@ -179,7 +180,7 @@ class ApiRequest {
 	 * @param {String} urlOrEndpoint
 	 */
 	setUrl(urlOrEndpoint) {
-		this.endpoint = urlOrEndpoint || '';
+		this.endpoint = String(urlOrEndpoint || '');
 	}
 
 	/**
@@ -233,7 +234,7 @@ class ApiRequest {
 			...this.options,
 		};
 		if (!['GET', 'HEAD'].includes(this.method) && options.body === undefined) {
-			options.body = JSON.stringify(this.data);
+			options.body = tryJson.stringify(this.data);
 		}
 		this.pending = true;
 		this.promise = fetch(this.url, options);

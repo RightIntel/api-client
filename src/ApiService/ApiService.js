@@ -222,7 +222,7 @@ class ApiService {
 	/**
 	 * Get a function to call on promise resolution
 	 * @param {ApiRequest} request  The request object
-	 * @returns {function(*=): ApiResponse}
+	 * @returns {ApiResponse}
 	 * @private
 	 */
 	_getSuccessHandler(request) {
@@ -254,7 +254,7 @@ class ApiService {
 	 */
 	_getErrorHandler(request) {
 		return error => {
-			if (error.type === 'aborted') {
+			if (error.type === 'aborted' || error.name === 'AbortError') {
 				// aborted by the user
 				return Promise.reject(this._handleAborted(request, error));
 			} else if (error instanceof TimeoutError) {
@@ -494,12 +494,14 @@ class ApiService {
 	 * @param {Object} [payload]  Parameters to send in the delete payload
 	 * @param {Object} [options]  Values to override ky request
 	 * @returns {Promise}  Resolves with the ApiResponse and rejects with ApiError
-	 * The ApiResponse will have an extra method onJobComplete:
-	 * 		ApiResponse#onJobComplete(
-	 * 			{Function} callback, // handler to call when job is complete
-	 * 			{Number} [recheckIntervalMs=5000], // interval to recheck completion status
-	 * 			{Number} [timeout=1800000] // milliseconds after which to give up
-	 * 		);
+	 * The ApiResponse will have extra methods wait() and stopWaiting():
+	 * 		ApiResponse#wait({
+	 * 			{Function} onComplete, // handler to call when job is complete
+	 * 			{Function} onTimeout, // handler to call when timeout is reached
+	 * 			{Number} recheckInterval=5000, // interval to recheck completion status
+	 * 			{Number} timeout=1800000 // milliseconds after which to give up
+	 * 		});
+	 * 		ApiResponse#stopWaiting()
 	 */
 	submitJob(endpoint, payload = {}, options = {}) {
 		if (!options.headers) {
@@ -509,39 +511,39 @@ class ApiService {
 		return this.post(endpoint, payload, options).then(
 			response => {
 				if (response.status !== 202) {
-					return;
+					return response;
 				}
 				const jobId = response.data.job_id;
 				const start = +new Date();
 				let timer;
-				response.onJobComplete = (
-					callback,
-					recheckIntervalMs = 5000,
-					timeout = 30 * 60 * 1000
-				) => {
+				response.wait = ({
+					onComplete = () => {},
+					onTimeout = () => {},
+					recheckInterval = 5000,
+					timeout = 30 * 60 * 1000,
+				}) => {
 					timer = setInterval(() => {
-						this.get(`/api_jobs/${jobId}`, { uuid: jobId }).then(response => {
+						this.get(`/api_jobs/${jobId}`).then(response => {
 							if (response.data.completed_at) {
 								clearInterval(timer);
-								callback(response);
+								onComplete(response);
 							} else {
 								checkTimeout();
 							}
 						}, checkTimeout);
-					}, recheckIntervalMs);
+					}, recheckInterval);
 					function checkTimeout() {
 						const totalTime = +new Date() - start;
 						if (totalTime > timeout) {
 							clearInterval(timer);
-							console.warn(
-								`Stopped checking API job status after ${timeout} milliseconds`
-							);
+							onTimeout(timeout);
 						}
 					}
 				};
 				response.stopWaiting = () => {
 					clearInterval(timer);
 				};
+				return response;
 			},
 			error => error
 		);

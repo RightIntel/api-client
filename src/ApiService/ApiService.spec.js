@@ -3,6 +3,7 @@ const ApiRequest = require('../ApiRequest/ApiRequest.js');
 const ApiResponse = require('../ApiResponse/ApiResponse.js');
 const ApiError = require('../ApiError/ApiError.js');
 const { TimeoutError, HTTPError } = require('../fetch/fetch.js');
+const fetchMock = require('fetch-mock');
 
 describe('ApiService class', () => {
 	it('should be instantiable', () => {
@@ -115,13 +116,135 @@ describe('ApiService other named functions', () => {
 			oldValues,
 			newValues
 		);
-		// TODO: is this what we want to resolve?
-		// TODO: maybe we resolve with a ApiNoRequest object?
 		expect(result).toEqual({
 			diff: {},
 			hasChanges: false,
 			response: null,
 		});
+	});
+});
+describe('ApiService submitJob with fetchMock', () => {
+	afterEach(() => fetchMock.reset());
+	it('should respond properly', async done => {
+		expect.assertions(3);
+		fetchMock.post(/doStuff1/, {
+			status: 202,
+			body: {
+				job_id: '123',
+			},
+		});
+		fetchMock.get(/api_jobs\/123/, {
+			status: 200,
+			body: {
+				completed_at: '2021-03-06 19:00:00',
+				response_body: JSON.stringify({ foo: 'done' }),
+			},
+		});
+		const api = new ApiService();
+		const result = await api.submitJob('https://example.com/doStuff1', {
+			a: 'one',
+		});
+		expect(result.request.headers['Submit-As-Job']).toBe('1');
+		expect(result.wait).toBeInstanceOf(Function);
+		result.wait({
+			onComplete: response => {
+				const data = JSON.parse(response.data.response_body);
+				expect(data).toEqual({ foo: 'done' });
+				done();
+			},
+			recheckInterval: 100,
+		});
+	});
+	it('should stop waiting', async done => {
+		expect.assertions(2);
+		fetchMock.post(/doStuff2/, {
+			status: 202,
+			body: {
+				job_id: '456',
+			},
+		});
+		fetchMock.get(/api_jobs\/456/, {
+			status: 200,
+			body: {
+				completed_at: '2021-03-06 19:03:00',
+				response_body: JSON.stringify({ bar: 'ok' }),
+			},
+		});
+		const api = new ApiService();
+		const result = await api.submitJob('https://example.com/doStuff2', {
+			b: 'two',
+		});
+		expect(result.stopWaiting).toBeInstanceOf(Function);
+		result.wait({
+			onComplete: () => {
+				expect(true).toBe(false);
+			},
+			recheckInterval: 100,
+		});
+		setTimeout(() => {
+			result.stopWaiting();
+			expect(true).toBe(true);
+			done();
+		}, 50);
+	});
+	it('should timeout', async done => {
+		expect.assertions(1);
+		fetchMock.post(/doStuff3/, {
+			status: 202,
+			body: {
+				job_id: '789',
+			},
+		});
+		fetchMock.get(/api_jobs\/789/, {
+			status: 200,
+			body: {
+				completed_at: null,
+			},
+		});
+		const api = new ApiService();
+		const result = await api.submitJob('https://example.com/doStuff3', {
+			c: 'three',
+		});
+		result.wait({
+			onComplete: () => {
+				expect(true).toBe(false);
+			},
+			onTimeout: () => {
+				expect(true).toBe(true);
+				done();
+			},
+			recheckInterval: 200,
+			timeout: 100,
+		});
+	});
+	it('should handle non 202', async () => {
+		fetchMock.post(/doStuff4/, {
+			status: 200,
+			body: {},
+		});
+		const api = new ApiService();
+		const result = await api.submitJob('https://example.com/doStuff4', {
+			d: 'four',
+		});
+		expect(result.status).toBe(200);
+		expect(result.wait).toBeUndefined();
+		expect(result.stopWaiting).toBeUndefined();
+	});
+	it('should error on 400', async () => {
+		fetchMock.post(/doStuff5/, {
+			status: 400,
+			body: {},
+		});
+		const api = new ApiService();
+		try {
+			await api.submitJob('https://example.com/doStuff5', {
+				e: 'five',
+			});
+		} catch (response) {
+			expect(response.status).toBe(400);
+			expect(response.wait).toBeUndefined();
+			expect(response.stopWaiting).toBeUndefined();
+		}
 	});
 });
 
@@ -246,6 +369,25 @@ describe('ApiService interceptors', () => {
 			expect(req).toBeInstanceOf(ApiRequest);
 			expect(res).toBeInstanceOf(ApiError);
 			expect(rejection.error).toBeInstanceOf(HTTPError);
+		}
+	});
+
+	it('should accept an error interceptor for bad URLs', async () => {
+		expect.assertions(3);
+		const api = new ApiService();
+		let req, res;
+		api.addInterceptor({
+			error: (request, response) => {
+				req = request;
+				res = response;
+			},
+		});
+		try {
+			await api.get('https://foo * bar');
+		} catch (rejection) {
+			expect(req).toBeInstanceOf(ApiRequest);
+			expect(res).toBeInstanceOf(ApiError);
+			expect(rejection.error).toBeInstanceOf(Error);
 		}
 	});
 	it('should accept an abort interceptor', done => {
@@ -549,7 +691,10 @@ describe('ApiService debugging', () => {
 			);
 		} catch (rejection) {
 			expect(rejection.debug()).toMatchSnapshot({
-				headers: { date: expect.any(String), server: expect.any(String) },
+				headers: {
+					date: expect.any(String),
+					server: expect.any(String),
+				},
 			});
 		}
 	});
@@ -573,6 +718,7 @@ describe('ApiRequest debugging', () => {
 						headers: {
 							date: expect.any(String),
 							server: expect.any(String),
+							'content-length': expect.any(String),
 						},
 					},
 				});

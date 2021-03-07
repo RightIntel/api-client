@@ -61,7 +61,7 @@ Object {
       "access-control-allow-credentials": "true",
       "access-control-allow-origin": "*",
       "connection": "close",
-      "content-length": "385",
+      "content-length": Any<String>,
       "content-type": "application/json",
       "date": Any<String>,
       "server": Any<String>,
