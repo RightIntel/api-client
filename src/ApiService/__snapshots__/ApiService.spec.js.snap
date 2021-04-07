@@ -75,7 +75,7 @@ Object {
 exports[`ApiService debugging should debug error responses 1`] = `
 Object {
   "data": "",
-  "errorMessage": "INTERNAL SERVER ERROR",
+  "errorMessage": "HTTP 500 INTERNAL SERVER ERROR",
   "headers": Object {
     "access-control-allow-credentials": "true",
     "access-control-allow-origin": "*",

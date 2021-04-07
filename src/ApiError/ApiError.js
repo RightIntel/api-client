@@ -18,13 +18,31 @@ class ApiError extends ApiResponse {
 	}
 
 	/**
+	 * @var {String} The type and message of the error object's error message
+	 */
+	get message() {
+		const type = this.error.constructor.name;
+		if (type === 'HTTPError') {
+			return `HTTP ${this.status} ${this.statusText}`;
+		}
+		return `${type}: ${this.error.message}`;
+	}
+
+	/**
+	 * @var {String} The stack trace of the error object
+	 */
+	get stack() {
+		return this.error.stack;
+	}
+
+	/**
 	 * Return a simple representation of error, request and response
 	 * @returns {Object}
 	 */
 	debug() {
 		const debugged = super.debug();
 		return {
-			errorMessage: this.error.message,
+			errorMessage: this.message,
 			...debugged,
 		};
 	}

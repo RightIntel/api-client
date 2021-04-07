@@ -250,7 +250,7 @@ describe('ApiService submitJob with fetchMock', () => {
 
 describe('ApiService errors', () => {
 	it('should handle an invalid domain', async () => {
-		expect.assertions(3);
+		expect.assertions(5);
 		const api = new ApiService();
 		try {
 			await api.get('https://nobody_soup/abc');
@@ -258,6 +258,12 @@ describe('ApiService errors', () => {
 			expect(rejection).toBeInstanceOf(ApiError);
 			expect(rejection.error).toBeInstanceOf(Error);
 			expect(rejection.ok).toBe(false);
+			expect(rejection.message).toBe(
+				'FetchError: request to https://nobody_soup/abc failed, reason: getaddrinfo ENOTFOUND nobody_soup'
+			);
+			expect(rejection.stack).toMatch(
+				/getaddrinfo ENOTFOUND nobody_soup\n\s*at /
+			);
 		}
 	});
 
@@ -271,8 +277,30 @@ describe('ApiService errors', () => {
 		}
 	});
 
+	it('should reject on 400s', async () => {
+		expect.assertions(2);
+		const api = new ApiService();
+		try {
+			await api.get('https://httpbin.org/status/400');
+		} catch (error) {
+			expect(error.error.constructor.name).toBe('HTTPError');
+			expect(error.message).toBe('HTTP 400 BAD REQUEST');
+		}
+	});
+
+	it('should reject on 500s', async () => {
+		expect.assertions(2);
+		const api = new ApiService();
+		try {
+			await api.get('https://httpbin.org/status/500');
+		} catch (error) {
+			expect(error.error.constructor.name).toBe('HTTPError');
+			expect(error.message).toBe('HTTP 500 INTERNAL SERVER ERROR');
+		}
+	});
+
 	it('should reject timeouts', async () => {
-		expect.assertions(3);
+		expect.assertions(5);
 		const api = new ApiService();
 		try {
 			await api.get('https://httpbin.org/delay/1', null, {
@@ -282,6 +310,8 @@ describe('ApiService errors', () => {
 			expect(rejection).toBeInstanceOf(ApiError);
 			expect(rejection.error).toBeInstanceOf(TimeoutError);
 			expect(rejection.ok).toBe(false);
+			expect(rejection.message).toBe('TimeoutError: Request timed out');
+			expect(rejection.stack).toMatch(/Request timed out\n\s*at /);
 		}
 	});
 
