@@ -23,7 +23,9 @@ class ApiError extends ApiResponse {
 	get message() {
 		const type = this.error.constructor.name;
 		if (type === 'HTTPError') {
-			return `HTTP ${this.status} ${this.statusText}`;
+			const status =
+				this.statusText || this.error.message || this.statusTextClass;
+			return `HTTP ${this.status} ${status}`;
 		}
 		return `${type}: ${this.error.message}`;
 	}

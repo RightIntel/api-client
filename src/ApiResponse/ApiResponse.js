@@ -111,6 +111,20 @@ class ApiResponse {
 		this.statusClass = String(this.rawResponse.status).slice(0, 1) + 'xx';
 
 		/**
+		 * The text name based on the category of response
+		 * @see https://en.wikipedia.org/wiki/List_of_HTTP_status_codes
+		 * @var {String}
+		 */
+		this.statusTextClass =
+			{
+				'1xx': 'Continue',
+				'2xx': 'Success',
+				'3xx': 'Redirect',
+				'4xx': 'Client Error',
+				'5xx': 'Server Error',
+			}[this.statusClass] || 'Unknown Status';
+
+		/**
 		 * The total found rows (e.g. number of results if limit were not applied)
 		 * @var {Number|null}
 		 */
