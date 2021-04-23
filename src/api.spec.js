@@ -48,16 +48,37 @@ describe('Handle real caching situation', () => {
 	});
 });
 describe('Playing nice with fetch-mock', () => {
+	afterEach(() => fetchMock.reset());
 	it('should allow mocking responses', async () => {
 		const fakeUrl = 'https://example.com/foo';
 		fetchMock.get(fakeUrl, {
 			body: { bar: 'baz' },
 			headers: {
+				'Content-type': 'application/json',
 				Header1: 'Value1',
 			},
 		});
 		const resp = await api.get(fakeUrl);
 		expect(resp.data).toEqual({ bar: 'baz' });
 		expect(resp.headers.header1).toEqual('Value1');
+	});
+});
+describe('ApiResponse#debug()', () => {
+	it('should properly capture response and request', async () => {
+		const resp = await api.get(
+			'https://httpbin.org/get',
+			{ b: 'two' },
+			{
+				headers: { hello: 'world' },
+			}
+		);
+		const debug = resp.debug();
+		expect(debug.status).toBe(200);
+		expect(debug.statusText).toBe('OK');
+		expect(debug.data.args).toEqual({ b: 'two' });
+		expect(debug.request.method).toBe('GET');
+		expect(debug.request.endpoint).toBe('https://httpbin.org/get');
+		expect(debug.request.params).toEqual({ b: 'two' });
+		expect(debug.request.headers.hello).toBe('world');
 	});
 });

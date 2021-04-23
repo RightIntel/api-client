@@ -1,0 +1,131 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ApiRequest debugging should debug error responses 1`] = `
+Object {
+  "data": Object {},
+  "endpoint": "https://httpbin.org/status/400",
+  "headers": Object {
+    "Baz": "Qux",
+  },
+  "method": "GET",
+  "options": Object {},
+  "params": Object {
+    "foo": "bar",
+  },
+  "response": Object {
+    "data": "",
+    "headers": Object {
+      "access-control-allow-credentials": "true",
+      "access-control-allow-origin": "*",
+      "connection": "close",
+      "content-length": "0",
+      "content-type": "text/html; charset=utf-8",
+      "date": Any<String>,
+      "server": Any<String>,
+    },
+    "status": 400,
+    "statusText": "BAD REQUEST",
+  },
+}
+`;
+
+exports[`ApiRequest debugging should debug successful responses 1`] = `
+Object {
+  "data": Object {},
+  "endpoint": "https://httpbin.org/get",
+  "headers": Object {
+    "Baz": "Qux",
+  },
+  "method": "GET",
+  "options": Object {},
+  "params": Object {
+    "foo": "bar",
+  },
+  "response": Object {
+    "data": Object {
+      "args": Object {
+        "foo": "bar",
+      },
+      "headers": Object {
+        "Accept": "*/*",
+        "Accept-Encoding": "gzip,deflate",
+        "Baz": "Qux",
+        "Host": "httpbin.org",
+        "User-Agent": Any<String>,
+        "X-Amzn-Trace-Id": Any<String>,
+      },
+      "origin": Any<String>,
+      "url": "https://httpbin.org/get?foo=bar",
+    },
+    "headers": Object {
+      "access-control-allow-credentials": "true",
+      "access-control-allow-origin": "*",
+      "connection": "close",
+      "content-length": Any<String>,
+      "content-type": "application/json",
+      "date": Any<String>,
+      "server": Any<String>,
+    },
+    "status": 200,
+    "statusText": "OK",
+  },
+}
+`;
+
+exports[`ApiService debugging should debug error responses 1`] = `
+Object {
+  "data": "",
+  "errorMessage": "HTTP 500 INTERNAL SERVER ERROR",
+  "headers": Object {
+    "access-control-allow-credentials": "true",
+    "access-control-allow-origin": "*",
+    "connection": "close",
+    "content-length": "0",
+    "content-type": "text/html; charset=utf-8",
+    "date": Any<String>,
+    "server": Any<String>,
+  },
+  "request": Object {
+    "data": Object {},
+    "endpoint": "https://httpbin.org/status/500",
+    "headers": Object {
+      "b": "2",
+    },
+    "method": "GET",
+    "options": Object {},
+    "params": Object {
+      "a": "1",
+    },
+  },
+  "status": 500,
+  "statusText": "INTERNAL SERVER ERROR",
+}
+`;
+
+exports[`ApiService debugging should debug successful responses 1`] = `
+Object {
+  "data": "",
+  "headers": Object {
+    "access-control-allow-credentials": "true",
+    "access-control-allow-origin": "*",
+    "connection": "close",
+    "content-type": "text/html; charset=utf-8",
+    "date": Any<String>,
+    "server": Any<String>,
+  },
+  "request": Object {
+    "data": Object {
+      "foo": "bar",
+    },
+    "endpoint": "https://httpbin.org/status/204",
+    "headers": Object {
+      "Baz": "Qux",
+    },
+    "method": "POST",
+    "options": Object {},
+    "params": Object {},
+  },
+  "status": 204,
+  "statusText": "NO CONTENT",
+}
+`;

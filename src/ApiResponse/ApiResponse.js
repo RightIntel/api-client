@@ -1,5 +1,6 @@
 const getObjectSize = require('lodash/size');
 const isEmptyObject = require('lodash/isEmpty');
+const tryJson = require('../tryJson/tryJson.js');
 
 /**
  * A class representing an API response from ApiService
@@ -20,6 +21,7 @@ class ApiResponse {
 		type = null,
 		data = null,
 		text = null,
+		wasAborted = false,
 	}) {
 		/**
 		 * @var {ApiRequest|Object} request  The ApiRequest that generated this response
@@ -109,6 +111,20 @@ class ApiResponse {
 		this.statusClass = String(this.rawResponse.status).slice(0, 1) + 'xx';
 
 		/**
+		 * The text name based on the category of response
+		 * @see https://en.wikipedia.org/wiki/List_of_HTTP_status_codes
+		 * @var {String}
+		 */
+		this.statusTextClass =
+			{
+				'1xx': 'Continue',
+				'2xx': 'Success',
+				'3xx': 'Redirect',
+				'4xx': 'Client Error',
+				'5xx': 'Server Error',
+			}[this.statusClass] || 'Unknown Status';
+
+		/**
 		 * The total found rows (e.g. number of results if limit were not applied)
 		 * @var {Number|null}
 		 */
@@ -175,14 +191,13 @@ class ApiResponse {
 		 * Notices reported by the API
 		 * @var {Array}
 		 */
-		this.notices =
-			JSON.parse(this.headers['api-response-notices'] || '[]') || [];
+		this.notices = tryJson.parse(this.headers['api-response-notices'], []);
 
 		/**
 		 * Errors reported by the API
 		 * @var {Array}
 		 */
-		this.errors = JSON.parse(this.headers['api-response-errors'] || '[]') || [];
+		this.errors = tryJson.parse(this.headers['api-response-errors'], []);
 
 		/**
 		 * The APIs response id UUID
@@ -195,28 +210,31 @@ class ApiResponse {
 		 * @var {Number}
 		 */
 		this.time = parseFloat(this.headers['api-response-time']) || 0;
+
+		/**
+		 * True if response comes from aborted request
+		 * @type {Boolean}
+		 */
+		this.wasAborted = !!wasAborted;
 	}
 
 	/**
-	 * Get a object representation of this request/response
-	 * @returns {{request: {headers: ({}|Object), endpoint: string, method: string, payload: {}, options: *}, response: {headers: {}, data: (*|null), statusText: String, dataType: null, text: (String|null), status: Number}}}
+	 * Get a object representation of this response and its request
+	 * @returns {Object}
 	 */
 	debug() {
 		return {
+			status: this.status,
+			statusText: this.statusText,
+			headers: this.headers,
+			data: this.data || this.text,
 			request: {
-				method: this.request._method.toUpperCase(),
+				method: this.request.method,
 				endpoint: this.request.endpoint,
-				payload: this.request._params,
-				options: this.request.options,
+				params: this.request.params,
+				data: this.request.data,
 				headers: this.request.headers,
-			},
-			response: {
-				status: this.status,
-				statusText: this.statusText,
-				headers: this.headers,
-				dataType: this.dataType,
-				data: this.data,
-				text: this.text,
+				options: this.request.options,
 			},
 		};
 	}
@@ -238,6 +256,7 @@ class ApiResponse {
 			}
 		} else if (typeof headers === 'object') {
 			for (const name in headers) {
+				// istanbul ignore next
 				if (!headers.hasOwnProperty(name)) {
 					continue;
 				}

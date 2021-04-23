@@ -1,4 +1,6 @@
-const SearchParams = { stringify, parse };
+const dateUtils = require('../dateUtils/dateUtils.js');
+
+const SearchParams = { stringify, parse, cleanObject };
 module.exports = SearchParams;
 
 /**
@@ -8,8 +10,8 @@ module.exports = SearchParams;
  * @returns {String}
  */
 function stringify(object) {
-	const cleanObject = _cleanObject(object);
-	const params = new URLSearchParams(cleanObject);
+	const cleaned = cleanObject(object);
+	const params = new URLSearchParams(cleaned);
 	params.sort();
 	return params.toString().replace(/\+/g, '%20').replace(/%2C/gi, ',');
 }
@@ -25,7 +27,7 @@ function parse(objOrString) {
 		typeof objOrString === 'object' &&
 		!(objOrString instanceof URLSearchParams)
 	) {
-		objOrString = _cleanObject(objOrString);
+		objOrString = cleanObject(objOrString);
 	}
 	const params = new URLSearchParams(objOrString);
 	const object = {};
@@ -36,30 +38,37 @@ function parse(objOrString) {
 }
 
 /**
- * 1) Remove properties that are undefined and null
- * 2) Convert true and false to "1" and "0" respectively
- * 3) Join arrays on commas
- * 4) Cast to strings
+ * 1) Remove properties that are functions, undefined or null
+ * 1) Format Date objects into strings
+ * 3) Convert true and false to "1" and "0" respectively
+ * 4) Join arrays on commas
+ * 5) Cast anything else to strings
  * @param {Object} object
  * @returns {Object}
- * @private
  */
-function _cleanObject(object) {
-	const cleanObject = {};
+function cleanObject(object) {
+	const cleaned = {};
 	for (const prop in object) {
 		// istanbul ignore next
-		if (!object.hasOwnProperty(prop)) {
+		if (
+			!object.hasOwnProperty(prop) ||
+			typeof object[prop] === 'function' ||
+			object[prop] === undefined ||
+			object[prop] === null
+		) {
 			continue;
 		}
-		if (object[prop] === false || object[prop] === 0) {
-			cleanObject[prop] = '0';
+		if (object[prop] instanceof Date) {
+			cleaned[prop] = dateUtils.formatUtc(object[prop]);
+		} else if (object[prop] === false || object[prop] === 0) {
+			cleaned[prop] = '0';
 		} else if (object[prop] === true) {
-			cleanObject[prop] = '1';
+			cleaned[prop] = '1';
 		} else if (Array.isArray(object[prop])) {
-			cleanObject[prop] = object[prop].join(',');
-		} else if (object[prop]) {
-			cleanObject[prop] = String(object[prop]);
+			cleaned[prop] = object[prop].join(',');
+		} else {
+			cleaned[prop] = String(object[prop]);
 		}
 	}
-	return cleanObject;
+	return cleaned;
 }

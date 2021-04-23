@@ -2,7 +2,8 @@ const ApiService = require('./ApiService.js');
 const ApiRequest = require('../ApiRequest/ApiRequest.js');
 const ApiResponse = require('../ApiResponse/ApiResponse.js');
 const ApiError = require('../ApiError/ApiError.js');
-const ky = require('../ky/ky.js');
+const { TimeoutError, HTTPError } = require('../fetch/fetch.js');
+const fetchMock = require('fetch-mock');
 
 describe('ApiService class', () => {
 	it('should be instantiable', () => {
@@ -115,43 +116,159 @@ describe('ApiService other named functions', () => {
 			oldValues,
 			newValues
 		);
-		// TODO: is this what we want to resolve?
-		// TODO: maybe we resolve with a ApiNoRequest object?
 		expect(result).toEqual({
 			diff: {},
 			hasChanges: false,
 			response: null,
 		});
 	});
-	// TODO: submitJob using fetchmock
+});
+describe('ApiService submitJob with fetchMock', () => {
+	afterEach(() => fetchMock.reset());
+	it('should respond properly', async done => {
+		expect.assertions(3);
+		fetchMock.post(/doStuff1/, {
+			status: 202,
+			body: {
+				job_id: '123',
+			},
+		});
+		fetchMock.get(/api_jobs\/123/, {
+			status: 200,
+			body: {
+				completed_at: '2021-03-06 19:00:00',
+				response_body: JSON.stringify({ foo: 'done' }),
+			},
+		});
+		const api = new ApiService();
+		const result = await api.submitJob('https://example.com/doStuff1', {
+			a: 'one',
+		});
+		expect(result.request.headers['Submit-As-Job']).toBe('1');
+		expect(result.wait).toBeInstanceOf(Function);
+		result.wait({
+			onComplete: response => {
+				const data = JSON.parse(response.data.response_body);
+				expect(data).toEqual({ foo: 'done' });
+				done();
+			},
+			recheckInterval: 100,
+		});
+	});
+	it('should stop waiting', async done => {
+		expect.assertions(2);
+		fetchMock.post(/doStuff2/, {
+			status: 202,
+			body: {
+				job_id: '456',
+			},
+		});
+		fetchMock.get(/api_jobs\/456/, {
+			status: 200,
+			body: {
+				completed_at: '2021-03-06 19:03:00',
+				response_body: JSON.stringify({ bar: 'ok' }),
+			},
+		});
+		const api = new ApiService();
+		const result = await api.submitJob('https://example.com/doStuff2', {
+			b: 'two',
+		});
+		expect(result.stopWaiting).toBeInstanceOf(Function);
+		result.wait({
+			onComplete: () => {
+				expect(true).toBe(false);
+			},
+			recheckInterval: 100,
+		});
+		setTimeout(() => {
+			result.stopWaiting();
+			expect(true).toBe(true);
+			done();
+		}, 50);
+	});
+	it('should timeout', async done => {
+		expect.assertions(1);
+		fetchMock.post(/doStuff3/, {
+			status: 202,
+			body: {
+				job_id: '789',
+			},
+		});
+		fetchMock.get(/api_jobs\/789/, {
+			status: 200,
+			body: {
+				completed_at: null,
+			},
+		});
+		const api = new ApiService();
+		const result = await api.submitJob('https://example.com/doStuff3', {
+			c: 'three',
+		});
+		result.wait({
+			onComplete: () => {
+				expect(true).toBe(false);
+			},
+			onTimeout: () => {
+				expect(true).toBe(true);
+				done();
+			},
+			recheckInterval: 200,
+			timeout: 100,
+		});
+	});
+	it('should handle non 202', async () => {
+		fetchMock.post(/doStuff4/, {
+			status: 200,
+			body: {},
+		});
+		const api = new ApiService();
+		const result = await api.submitJob('https://example.com/doStuff4', {
+			d: 'four',
+		});
+		expect(result.status).toBe(200);
+		expect(result.wait).toBeUndefined();
+		expect(result.stopWaiting).toBeUndefined();
+	});
+	it('should error on 400', async () => {
+		fetchMock.post(/doStuff5/, {
+			status: 400,
+			body: {},
+		});
+		const api = new ApiService();
+		try {
+			await api.submitJob('https://example.com/doStuff5', {
+				e: 'five',
+			});
+		} catch (response) {
+			expect(response.status).toBe(400);
+			expect(response.wait).toBeUndefined();
+			expect(response.stopWaiting).toBeUndefined();
+		}
+	});
 });
 
 describe('ApiService errors', () => {
-	it('should promise an ApiError object', async () => {
-		const api = new ApiService();
-		try {
-			await api.get('https://httpbin.org/status/500');
-		} catch (rejection) {
-			expect(rejection).toBeInstanceOf(ApiError);
-			expect(rejection.error).toBeInstanceOf(ky.HTTPError);
-			expect(rejection.ok).toBe(false);
-			expect(rejection.status).toBe(500);
-			expect(rejection.text).toBe('');
-		}
-	});
-
 	it('should handle an invalid domain', async () => {
+		expect.assertions(5);
 		const api = new ApiService();
 		try {
-			await api.get('https://nobody-soup/abc');
+			await api.get('https://nobody_soup/abc');
 		} catch (rejection) {
 			expect(rejection).toBeInstanceOf(ApiError);
 			expect(rejection.error).toBeInstanceOf(Error);
 			expect(rejection.ok).toBe(false);
+			expect(rejection.message).toBe(
+				'FetchError: request to https://nobody_soup/abc failed, reason: getaddrinfo ENOTFOUND nobody_soup'
+			);
+			expect(rejection.stack).toMatch(
+				/getaddrinfo ENOTFOUND nobody_soup\n\s*at /
+			);
 		}
 	});
 
 	it('should throw on bad protocols', async () => {
+		expect.assertions(1);
 		const api = new ApiService();
 		try {
 			await api.get('abc://unvalid');
@@ -160,17 +277,50 @@ describe('ApiService errors', () => {
 		}
 	});
 
-	it('should reject timeouts', async () => {
+	it('should reject on 400s', async () => {
+		expect.assertions(2);
 		const api = new ApiService();
 		try {
-			await api.get('https://httpbin.org/delay/2', null, {
-				timeout: 1000,
+			await api.get('https://httpbin.org/status/400');
+		} catch (error) {
+			expect(error.error.constructor.name).toBe('HTTPError');
+			expect(error.message).toBe('HTTP 400 BAD REQUEST');
+		}
+	});
+
+	it('should reject on 500s', async () => {
+		expect.assertions(2);
+		const api = new ApiService();
+		try {
+			await api.get('https://httpbin.org/status/500');
+		} catch (error) {
+			expect(error.error.constructor.name).toBe('HTTPError');
+			expect(error.message).toBe('HTTP 500 INTERNAL SERVER ERROR');
+		}
+	});
+
+	it('should reject timeouts', async () => {
+		expect.assertions(5);
+		const api = new ApiService();
+		try {
+			await api.get('https://httpbin.org/delay/1', null, {
+				timeout: 100,
 			});
 		} catch (rejection) {
 			expect(rejection).toBeInstanceOf(ApiError);
-			expect(rejection.error).toBeInstanceOf(ky.TimeoutError);
+			expect(rejection.error).toBeInstanceOf(TimeoutError);
 			expect(rejection.ok).toBe(false);
+			expect(rejection.message).toBe('TimeoutError: Request timed out');
+			expect(rejection.stack).toMatch(/Request timed out\n\s*at /);
 		}
+	});
+
+	it('should interpret 0 timeout as infinite', async () => {
+		const api = new ApiService();
+		const response = await api.get('https://httpbin.org/delay/1', null, {
+			timeout: 0,
+		});
+		expect(response.status).toBe(200);
 	});
 });
 
@@ -234,7 +384,7 @@ describe('ApiService interceptors', () => {
 	});
 
 	it('should accept an error interceptor', async () => {
-		expect.assertions(2);
+		expect.assertions(3);
 		const api = new ApiService();
 		let req, res;
 		api.addInterceptor({
@@ -248,9 +398,28 @@ describe('ApiService interceptors', () => {
 		} catch (rejection) {
 			expect(req).toBeInstanceOf(ApiRequest);
 			expect(res).toBeInstanceOf(ApiError);
+			expect(rejection.error).toBeInstanceOf(HTTPError);
 		}
 	});
-	// TODO: use fetchmock to trigger error handler for other error
+
+	it('should accept an error interceptor for bad URLs', async () => {
+		expect.assertions(3);
+		const api = new ApiService();
+		let req, res;
+		api.addInterceptor({
+			error: (request, response) => {
+				req = request;
+				res = response;
+			},
+		});
+		try {
+			await api.get('https://foo * bar');
+		} catch (rejection) {
+			expect(req).toBeInstanceOf(ApiRequest);
+			expect(res).toBeInstanceOf(ApiError);
+			expect(rejection.error).toBeInstanceOf(Error);
+		}
+	});
 	it('should accept an abort interceptor', done => {
 		expect.assertions(2);
 		const api = new ApiService();
@@ -284,7 +453,7 @@ describe('ApiService interceptors', () => {
 
 describe('ApiService abort() function', () => {
 	it('should abort by abort() method', async () => {
-		expect.assertions(3);
+		expect.assertions(4);
 		const api = new ApiService();
 		const promise = api.get('https://httpbin.org/get?a=1');
 		expect(typeof promise.abort).toBe('function');
@@ -293,6 +462,7 @@ describe('ApiService abort() function', () => {
 			await promise;
 		} catch (rejection) {
 			expect(rejection).toBeInstanceOf(ApiError);
+			expect(rejection.wasAborted).toBe(true);
 			expect(rejection.error).toBeInstanceOf(Error);
 		}
 	});
@@ -445,6 +615,12 @@ describe('ApiService abort() function', () => {
 			done();
 		}, 100);
 	});
+
+	it('should return 0 when abort promise is not found', () => {
+		const api = new ApiService();
+		const numAborted = api.abort(Promise.resolve('foo'));
+		expect(numAborted).toBe(0);
+	});
 });
 
 describe('ApiService caching', () => {
@@ -515,5 +691,104 @@ describe('ApiService default options', () => {
 		api.setBaseURL('https://example.com/api');
 		const base = api.getBaseURL();
 		expect(base).toBe('https://example.com/api');
+	});
+});
+
+describe('ApiService debugging', () => {
+	it('should debug successful responses', async () => {
+		const api = new ApiService();
+		const response = await api.post(
+			'https://httpbin.org/status/204',
+			{ foo: 'bar' },
+			{
+				headers: {
+					Baz: 'Qux',
+				},
+			}
+		);
+		expect(response.debug()).toMatchSnapshot({
+			headers: { date: expect.any(String), server: expect.any(String) },
+		});
+	});
+	it('should debug error responses', async () => {
+		expect.assertions(1);
+		const api = new ApiService();
+		try {
+			await api.get(
+				'https://httpbin.org/status/500',
+				{ a: '1' },
+				{ headers: { b: '2' } }
+			);
+		} catch (rejection) {
+			expect(rejection.debug()).toMatchSnapshot({
+				headers: {
+					date: expect.any(String),
+					server: expect.any(String),
+				},
+			});
+		}
+	});
+});
+
+describe('ApiRequest debugging', () => {
+	it('should debug successful responses', async () => {
+		expect.assertions(1);
+		const api = new ApiService();
+		api.addInterceptor({
+			response: request => {
+				expect(request.debug()).toMatchSnapshot({
+					response: {
+						data: {
+							headers: {
+								'User-Agent': expect.any(String),
+								'X-Amzn-Trace-Id': expect.any(String),
+							},
+							origin: expect.any(String),
+						},
+						headers: {
+							date: expect.any(String),
+							server: expect.any(String),
+							'content-length': expect.any(String),
+						},
+					},
+				});
+			},
+		});
+		await api.get(
+			'https://httpbin.org/get',
+			{ foo: 'bar' },
+			{
+				headers: {
+					Baz: 'Qux',
+				},
+			}
+		);
+	});
+	it('should debug error responses', async () => {
+		expect.assertions(1);
+		const api = new ApiService();
+		api.addInterceptor({
+			error: request => {
+				expect(request.debug()).toMatchSnapshot({
+					response: {
+						headers: {
+							date: expect.any(String),
+							server: expect.any(String),
+						},
+					},
+				});
+			},
+		});
+		try {
+			await api.get(
+				'https://httpbin.org/status/400',
+				{ foo: 'bar' },
+				{
+					headers: {
+						Baz: 'Qux',
+					},
+				}
+			);
+		} catch (e) {}
 	});
 });

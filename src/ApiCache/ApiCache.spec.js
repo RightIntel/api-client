@@ -63,7 +63,7 @@ describe('ApiCache find() function', () => {
 	it('should not find a mismatching item', () => {
 		const cache = new ApiCache();
 		const request = new ApiRequest('get', '/abc', null, {
-			cacheFor: 1000,
+			cacheFor: '1s',
 		});
 		const promise = Promise.resolve(1);
 		cache.add(request, promise);
@@ -129,7 +129,7 @@ describe('ApiCache expiration', () => {
 		const cache = new ApiCache();
 		cache.add(
 			new ApiRequest('get', '/abc', null, {
-				cacheFor: 100,
+				cacheFor: '100ms',
 			}),
 			{}
 		);

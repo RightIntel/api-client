@@ -9,6 +9,17 @@ Similar to our Angular ApiProvider but more intuitive. Target uses include:
 - New React code
 - API v4 endpoints written in JavaScript
 - API integration testing (v2, v3, v4)
+- Single-use scripts for reports or importing data (e.g. queries repo)
+
+Extra features include:
+
+1. HTTP errors cause a promise rejection
+1. You can specify a timeout
+1. It reads Sharpr's `API-*` HTTP headers
+1. Supports caching in milliseconds or as an expression
+1. You can abort requests that match a certain pattern
+1. It supports interceptors for request, response, error, timeout, abort
+1. Using `node-fetch` it supports fetching on Node
 
 ## Table of Contents
 
@@ -19,6 +30,7 @@ Similar to our Angular ApiProvider but more intuitive. Target uses include:
 - [Special Methods](#special-methods)
 - [Aborting Requests](#aborting-requests)
 - [Caching](#caching)
+- [Mocking with fetch-mock](#mocking-with-fetch-mock)
 - [Interceptors](#interceptors)
 - [APIRequest](#apirequest)
 
@@ -28,17 +40,17 @@ Use the following key for the origin of each option:
 
 - `[f]` From window.fetch - [docs](https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/fetch)
 - `[S]` Custom Sharpr item
-- `[k]` From ky - [docs](https://github.com/sindresorhus/ky)
 
 ```jsx harmony
-const { request, head, get, post, del, put, patch } = request('api-client');
-request(method, endpoint, params, kyOverrides);
-head(endpoint, params, kyOverrides);
-get(endpoint, params, kyOverrides);
-post(endpoint, payload, kyOverrides);
-del(endpoint, payload, kyOverrides);
-put(endpoint, payload, kyOverrides);
-patch(endpoint, payload, kyOverrides);
+const api = require('api-client');
+api.head(endpoint, params, options);
+api.get(endpoint, params, options);
+api.post(endpoint, payload, options);
+api.delete(endpoint, payload, options);
+api.put(endpoint, payload, options);
+api.patch(endpoint, payload, options);
+api.request(method, endpoint, params, options);
+api.abort(methodStringOrRegex, endpointStringOrRegex);
 ```
 
 Where:
@@ -46,14 +58,12 @@ Where:
 - `{String} method` GET, POST, DELETE, etc. `[f]`
 - `{String} endpoint` The name of the API endpoint such as /posts/123 `[S]`
 - `{Object} [paramsOrData]` For GET requests, the query params; otherwise JSON payload `[S]`
-- `{Object} [kyOverrides]` Additional overrides including { headers } `[k]`
+- `{Object} [options]` Additional overrides including { headers }
   - `{Object} headers` Any request headers `[f]`
-  - `{Object} retry` ky retry options (default = no retries) see https://github.com/sindresorhus/ky#retry `[k]`
-  - `{Number} timeout` The number of milliseconds after which to time out (default is 5 minutes) `[k]`
-  - `{Boolean} throwHttpErrors` If false, resolve non-2xx responses instead of rejecting (default = true) `[k]`
-  - `{Function} onDownloadProgress: (progress, chunk)` see https://github.com/sindresorhus/ky#ondownloadprogress `[k]`
+  - `{Number} timeout` The number of milliseconds after which to time out (default is 5 minutes) `[S]`
   - `{Boolean} avoidLoadingBar` If true, do not show loading bar (React only) `[S]`
-    Returns:
+
+Returns:
 
 A promise that resolves with `ApiResponse` or rejects with `ApiError`.
 
@@ -76,16 +86,13 @@ api.setBaseURL('https://example.com');
 
 `ApiResponse` is a custom Sharpr class to make it easier to work with responses.
 
-- `{Object} request` The original request object that was passed to ky `[k]`
+- `{Object} request` The original ApiRequest object that generated this response
   - `{String} url` A raw URL to use instead of the endpoint `[S]`
   - `{String} method` GET, POST, DELETE, etc. `[f]`
   - `{Object} searchParams` params that were serialized into the GET string `[k]`
   - `{Object} headers` Any request headers `[f]`
-  - `{*} json` The JSON payload `[k]`
-  - `{Object} retry` ky retry options `[k]`
-  - `{Number} timeout` The number of milliseconds after which to time out `[k]`
-  - `{Boolean} throwHttpErrors` If false, resolve non-2xx responses instead of rejecting `[k]`
-  - `{Function} onDownloadProgress: (progress, chunk)` see https://github.com/sindresorhus/ky#ondownloadprogress
+  - `{*} json` The JSON payload `[f]`
+  - `{Number} timeout` The number of milliseconds after which to time out `[S]`
   - `{Boolean} avoidLoadingBar` If true, do not show loading bar `[S]`
 - `{String} type` Either "json", "text" or null depending on response type `[S]`
 - `{*} data` The decoded response or text `[S]`
@@ -109,6 +116,7 @@ api.setBaseURL('https://example.com');
 - `{String} responseId` The value of the `API-Response-Id` response header `[S]`
 - `{Number} newId` The value of the `API-New-Record-Id` response header `[S]`
 - `{Number} time` The value of the `API-Response-Time` response header `[S]`
+- `{Boolean} wasAborted` True if request was aborted `[S]`
 
 ## Handling Errors
 
@@ -129,8 +137,8 @@ api.get('/hello').then(onSuccess, response => {
 
 The following methods are added for convenience:
 
-- `patchDifference(endpoint, oldValues, newValues, kyOverrides)`
-- `submitJob(endpoint, payload, kyOverrides)`
+- `patchDifference(endpoint, oldValues, newValues, options)`
+- `submitJob(endpoint, payload, options)`
 
 ### Examples
 
@@ -186,7 +194,7 @@ abort(promise);
 
 There are some api-related hooks that can be used with React components:
 
-1. `useApiGet(endpoint, params, kyOptions)`
+1. `useApiGet(endpoint, params, options)`
 1. `useApiGetAll(endpointArgSets)`
 1. `useApiEndpoint(verb, endpoint)`
 
@@ -296,13 +304,48 @@ const result2 = api.get('/abc', { d: 4 }, { cacheFor: '2h' });
 // result1 === result2
 ```
 
-## Interceptors
+## Mocking with fetch-mock
 
-- `request` interceptors receive an ApiRequest object:
-- `response` interceptors receive an ApiRequest and ApiResponse object:
-- `error`, `timeout` and `abort` interceptors receive an ApiRequest an ApiError object:
+For unit tests, you may want to mock responses. The [fetch-mock](http://www.wheresrhys.co.uk/fetch-mock/)
+package works well for that.
+
+Example:
 
 ```js
+// first require or import api-client
+const api = require('api-client');
+// fetchMock must be required aftwarwords
+const fetchMock = require('fetch-mock');
+
+fetchMock.get(/posts\/search/, {
+	status: 200,
+	body: range(10).map(id => ({ id, title: `Post ${id}` })),
+	headers: {
+		'API-Total-Records': '200',
+	},
+});
+
+api.get('/api/v2/posts/search?limit=10').then(response => {
+	response.data; // equal to body specified above
+	response.total; // 200
+	response.numPages; // 20
+});
+```
+
+## Interceptors
+
+- `request` Called before every request is sent
+- `response` Called after every response is receoved (before resolving promise)
+- `error` Called when HTTP status is between 400 and 599 inclusive (before rejecting promise)
+- `timeout` Called when an API request hits the configured timeout (before rejecting promise)
+- `abort` Called when the promise creator aborts the request (before rejecting promise)
+
+```js
+// NOTE:
+// request instanceof ApiRequest
+// response instanceof ApiResponse
+// api instanceof ApiService
+// error instanceof ApiError
 api.addInterceptor({
 	request: (request, api) => {},
 	response: (request, response, api) => {},
@@ -320,7 +363,7 @@ api.addInterceptor({
 | `endpoint`    | String  | The Sharpr endpoint                         | /v3/users/me                    |
 | `params`      | Object  | The params to send in the URL               | `{a: '1'}`                      |
 | `data`        | Object  | The payload to be sent                      | `{ a: 1 }`                      |
-| `options`     | Object  | The ky and caching options                  | `{ cacheFor: '15m' }`           |
+| `options`     | Object  | The options passed to fetch                 | `{ cacheFor: '15m' }`           |
 | `headers`     | Headers | Headers to be sent                          | `new Headers({ a: '1'})`        |
 | `queryString` | String  | The URL query string based on `params`      | a=1&b=2                         |
 | `url`         | String  | The full URL to be sent                     | https://example.com/abc?a=1&b=2 |
@@ -330,4 +373,4 @@ api.addInterceptor({
 | Method    | Returns | Description             |
 | --------- | ------- | ----------------------- |
 | `abort()` | void    | Abort a pending request |
-| `send()`  | Promise | A promise from ky       |
+| `send()`  | Promise | A promise from fetch    |
