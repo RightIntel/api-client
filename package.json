@@ -1,7 +1,7 @@
 {
-  "name": "api-client",
+  "name": "sh-api-client",
   "version": "3.2.1",
-  "description": "JavaScript api client for use in React and Node",
+  "description": "Sharpr JavaScript api client for use in React and Node",
   "main": "index.js",
   "scripts": {
     "test": "npx jest",

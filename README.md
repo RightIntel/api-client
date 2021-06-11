@@ -1,6 +1,6 @@
 # api-client
 
-JavaScript api client for use in React and Node
+Sharpr JavaScript api client for use in React and Node
 
 ## Tell me more
 
