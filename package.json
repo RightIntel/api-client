@@ -1,6 +1,6 @@
 {
   "name": "sh-api-client",
-  "version": "3.2.1",
+  "version": "3.2.2",
   "description": "Sharpr JavaScript api client for use in React and Node",
   "main": "index.js",
   "scripts": {
@@ -33,7 +33,7 @@
     "abort-controller": "^3.0.0",
     "any-date-parser": "^1.4.5",
     "is-promise": "^4.0.0",
-    "lodash": "^4.17.21",
+    "lodash-es": "^4.17.21",
     "node-fetch": "^2.6.1",
     "parse-duration": "^1.0.0"
   }

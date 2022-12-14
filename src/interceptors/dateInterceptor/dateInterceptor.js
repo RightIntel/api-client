@@ -1,4 +1,4 @@
-const forEach = require('lodash/forEach');
+const { forEach } = require('lodash-es');
 const {
 	isDateFormat,
 	isDateField,

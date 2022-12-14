@@ -1,5 +1,5 @@
-const getObjectSize = require('lodash/size');
-const isEmptyObject = require('lodash/isEmpty');
+const { size } = require('lodash-es');
+const { isEmpty } = require('lodash-es');
 const tryJson = require('../tryJson/tryJson.js');
 
 /**
@@ -134,7 +134,7 @@ class ApiResponse {
 		 * The number of records returned
 		 * @var {Number}
 		 */
-		this.size = typeof this.data === 'object' ? getObjectSize(this.data) : null;
+		this.size = typeof this.data === 'object' ? size(this.data) : null;
 
 		/**
 		 * The max number of records requested
@@ -167,7 +167,7 @@ class ApiResponse {
 		this.isEmpty =
 			(Array.isArray(this.data) && this.data.length === 0) ||
 			this.text === '' ||
-			isEmptyObject(this.data);
+			isEmpty(this.data);
 
 		/**
 		 * The value of the Location HTTP response header
