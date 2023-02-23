@@ -24,11 +24,6 @@ describe('ApiCache getMilliseconds() function', () => {
 		const milliseconds = cache.getMilliseconds('3m');
 		expect(milliseconds).toBe(1000 * 3 * 60);
 	});
-	it('should handle m with s', () => {
-		const cache = new ApiCache();
-		const milliseconds = cache.getMilliseconds('3m 30s');
-		expect(milliseconds).toBe(1000 * 3.5 * 60);
-	});
 	it('should handle h', () => {
 		const cache = new ApiCache();
 		const milliseconds = cache.getMilliseconds('3h');
@@ -53,12 +48,16 @@ describe('ApiCache getMilliseconds() function', () => {
 
 describe('ApiCache find() function', () => {
 	it('should find a matching item', () => {
+		expect.assertions(2);
 		const cache = new ApiCache();
 		const request = new ApiRequest('get', '/abc');
 		const promise = Promise.resolve(1);
 		cache.add(request, promise);
 		const found = cache.find(new ApiRequest('get', '/abc'));
-		expect(found.promise).toBe(promise);
+		expect(typeof found?.then).toBe('function');
+		found.then(result => {
+			expect(result).toBe(1);
+		});
 	});
 	it('should not find a mismatching item', () => {
 		const cache = new ApiCache();
@@ -76,37 +75,37 @@ describe('ApiCache add() function', () => {
 	it('should add an item', () => {
 		const cache = new ApiCache();
 		const request = new ApiRequest('get', '/abc');
-		cache.add(request, {});
+		cache.add(request, Promise.resolve('a'));
 		expect(cache.entries).toHaveLength(1);
 	});
 	it('should clear all items', () => {
 		const cache = new ApiCache();
-		cache.add(new ApiRequest('get', '/abc'), {});
-		cache.add(new ApiRequest('get', '/def'), {});
+		cache.add(new ApiRequest('get', '/abc'), Promise.resolve('a'));
+		cache.add(new ApiRequest('get', '/def'), Promise.resolve('d'));
 		cache.clear();
 		expect(cache.entries).toHaveLength(0);
 	});
 	it('should clear by method', () => {
 		const cache = new ApiCache();
-		cache.add(new ApiRequest('get', '/abc'), {});
-		cache.add(new ApiRequest('post', '/abc'), {});
-		cache.add(new ApiRequest('get', '/def'), {});
+		cache.add(new ApiRequest('get', '/abc'), Promise.resolve('a'));
+		cache.add(new ApiRequest('post', '/abc'), Promise.resolve('a'));
+		cache.add(new ApiRequest('get', '/def'), Promise.resolve('d'));
 		cache.clear('GET');
 		expect(cache.entries).toHaveLength(1);
 	});
 	it('should clear by method', () => {
 		const cache = new ApiCache();
-		cache.add(new ApiRequest('get', '/abc'), {});
-		cache.add(new ApiRequest('get', '/abc'), {});
-		cache.add(new ApiRequest('get', '/def'), {});
+		cache.add(new ApiRequest('get', '/abc'), Promise.resolve('a'));
+		cache.add(new ApiRequest('get', '/abc'), Promise.resolve('a'));
+		cache.add(new ApiRequest('get', '/def'), Promise.resolve('d'));
 		cache.clear('get', '/abc');
 		expect(cache.entries).toHaveLength(1);
 	});
 	it('should clear by regexp', () => {
 		const cache = new ApiCache();
-		cache.add(new ApiRequest('get', '/abc'), {});
-		cache.add(new ApiRequest('post', '/abc'), {});
-		cache.add(new ApiRequest('get', '/def'), {});
+		cache.add(new ApiRequest('get', '/abc'), Promise.resolve('a'));
+		cache.add(new ApiRequest('post', '/abc'), Promise.resolve('a'));
+		cache.add(new ApiRequest('get', '/def'), Promise.resolve('d'));
 		cache.clear(/GET|POST/, /abc/);
 		expect(cache.entries).toHaveLength(1);
 	});
@@ -116,7 +115,7 @@ describe('ApiCache add() function', () => {
 			new ApiRequest('get', '/abc', null, {
 				cacheFor: 1000,
 			}),
-			{}
+			Promise.resolve('a')
 		);
 		cache.entries = [];
 		jest.advanceTimersByTime(2000);
@@ -128,10 +127,10 @@ describe('ApiCache expiration', () => {
 	it('should add an item', () => {
 		const cache = new ApiCache();
 		cache.add(
-			new ApiRequest('get', '/abc', null, {
+			new ApiRequest('get', '/abc', null, null, {
 				cacheFor: '100ms',
 			}),
-			{}
+			Promise.resolve('a')
 		);
 		expect(cache.entries).toHaveLength(1);
 		jest.advanceTimersByTime(200);

@@ -1,11 +1,9 @@
-const { isEqual } = require('lodash-es');
+const isEqual = require('../isEqual/isEqual.js');
 const equalsOrMatches = require('../equalsOrMatches/equalsOrMatches.js');
-const isPromise = require('is-promise');
 const ApiError = require('../ApiError/ApiError.js');
 const ApiRequest = require('../ApiRequest/ApiRequest.js');
 const ApiCache = require('../ApiCache/ApiCache.js');
 const ApiResponse = require('../ApiResponse/ApiResponse.js');
-const { TimeoutError, HTTPError } = require('../fetch/fetch.js');
 
 class ApiService {
 	/**
@@ -81,7 +79,7 @@ class ApiService {
 	 * @returns {Number}  The number of requests that were canceled
 	 */
 	abort(methodOrPromise = null, endpoint = null) {
-		if (isPromise(methodOrPromise)) {
+		if (typeof methodOrPromise?.then === 'function') {
 			// cancel a specific request
 			const promise = methodOrPromise;
 			for (const item of this.pendingRequests) {
@@ -193,7 +191,7 @@ class ApiService {
 		// return cached promise if available
 		let cached = this.cache.find(request);
 		if (cached) {
-			return cached.promise;
+			return cached;
 		}
 		this.interceptors.request.forEach(interceptor => {
 			interceptor(request, this);
@@ -255,18 +253,14 @@ class ApiService {
 	_getErrorHandler(request) {
 		return error => {
 			if (error.type === 'aborted' || error.name === 'AbortError') {
-				// aborted by the user
+				// aborted by the browser
 				return Promise.reject(this._handleAborted(request, error));
-			} else if (error instanceof TimeoutError) {
+			} else if (error.isTimeout) {
 				// endpoint took too long to return
 				return Promise.reject(this._handleTimeout(request, error));
-			} else if (
-				error instanceof TypeError ||
-				error instanceof ReferenceError
-			) {
-				throw error;
+			} else {
+				return Promise.reject(this._handleOtherError(request, error));
 			}
-			return Promise.reject(this._handleOtherError(request, error));
 		};
 	}
 
@@ -278,9 +272,11 @@ class ApiService {
 	 * @private
 	 */
 	async _throwHttpError(request, rawResponse) {
+		const error = new Error(rawResponse.statusText);
+		error.isHttpError = true;
 		const { type, data, text } = await this._readResponseData(rawResponse);
 		const response = new ApiError({
-			error: new HTTPError(rawResponse.statusText),
+			error,
 			request,
 			response: rawResponse,
 			type,
@@ -337,6 +333,13 @@ class ApiService {
 	 */
 	_handleOtherError(request, error) {
 		// FetchError { 'messsage': 'request to ... failed, reason: getaddrinfo ENOTFOUND ...' }
+		const errorClass = error?.prototype?.name || 'Error';
+		if (typeof document !== 'undefined') {
+			console.error(
+				`sh-api-client: ApiService ${errorClass} requesting ${request.method} ${request.url} - "${error?.message}"`,
+				error
+			);
+		}
 		const response = new ApiError({ error, request });
 		request.response = response;
 		this.interceptors.error.forEach(interceptor => {
@@ -515,30 +518,42 @@ class ApiService {
 				}
 				const jobId = response.data.job_id;
 				const start = +new Date();
+				let isComplete = false;
+				let isTimedOut = false;
 				let timer;
+				let inFlight;
 				response.wait = ({
 					onComplete = () => {},
 					onTimeout = () => {},
 					recheckInterval = 5000,
 					timeout = 30 * 60 * 1000,
 				}) => {
-					timer = setInterval(() => {
-						this.get(`/api_jobs/${jobId}`).then(response => {
+					const checkIfComplete = () => {
+						inFlight = this.get(`/api_jobs/${jobId}`).then(response => {
+							if (isTimedOut) {
+								return;
+							}
 							if (response.data.completed_at) {
 								clearInterval(timer);
+								isComplete = true;
 								onComplete(response);
-							} else {
-								checkTimeout();
 							}
-						}, checkTimeout);
-					}, recheckInterval);
-					function checkTimeout() {
+						});
+					};
+					const checkIfTimedOut = () => {
+						if (isComplete) {
+							return;
+						}
 						const totalTime = +new Date() - start;
 						if (totalTime > timeout) {
+							isTimedOut = true;
 							clearInterval(timer);
+							inFlight?.abort();
 							onTimeout(timeout);
 						}
-					}
+					};
+					timer = setInterval(checkIfComplete, recheckInterval);
+					setTimeout(checkIfTimedOut, timeout);
 				};
 				response.stopWaiting = () => {
 					clearInterval(timer);

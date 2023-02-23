@@ -21,12 +21,12 @@ class ApiError extends ApiResponse {
 	 * @var {String} The type and message of the error object's error message
 	 */
 	get message() {
-		const type = this.error.constructor.name;
-		if (type === 'HTTPError') {
+		if (this.error.isHttpError) {
 			const status =
 				this.statusText || this.error.message || this.statusTextClass;
 			return `HTTP ${this.status} ${status}`;
 		}
+		const type = this.error.constructor.name;
 		return `${type}: ${this.error.message}`;
 	}
 

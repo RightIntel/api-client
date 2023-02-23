@@ -1,23 +1,23 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ApiRequest debugging should debug error responses 1`] = `
-Object {
-  "data": Object {},
+{
+  "data": {},
   "endpoint": "https://httpbin.org/status/400",
-  "headers": Object {
+  "headers": {
     "Baz": "Qux",
   },
   "method": "GET",
-  "options": Object {},
-  "params": Object {
+  "options": {},
+  "params": {
     "foo": "bar",
   },
-  "response": Object {
+  "response": {
     "data": "",
-    "headers": Object {
+    "headers": {
       "access-control-allow-credentials": "true",
       "access-control-allow-origin": "*",
-      "connection": "close",
+      "connection": "keep-alive",
       "content-length": "0",
       "content-type": "text/html; charset=utf-8",
       "date": Any<String>,
@@ -30,37 +30,39 @@ Object {
 `;
 
 exports[`ApiRequest debugging should debug successful responses 1`] = `
-Object {
-  "data": Object {},
+{
+  "data": {},
   "endpoint": "https://httpbin.org/get",
-  "headers": Object {
+  "headers": {
     "Baz": "Qux",
   },
   "method": "GET",
-  "options": Object {},
-  "params": Object {
+  "options": {},
+  "params": {
     "foo": "bar",
   },
-  "response": Object {
-    "data": Object {
-      "args": Object {
+  "response": {
+    "data": {
+      "args": {
         "foo": "bar",
       },
-      "headers": Object {
+      "headers": {
         "Accept": "*/*",
-        "Accept-Encoding": "gzip,deflate",
+        "Accept-Encoding": "br, gzip, deflate",
+        "Accept-Language": "*",
         "Baz": "Qux",
         "Host": "httpbin.org",
+        "Sec-Fetch-Mode": "cors",
         "User-Agent": Any<String>,
         "X-Amzn-Trace-Id": Any<String>,
       },
       "origin": Any<String>,
       "url": "https://httpbin.org/get?foo=bar",
     },
-    "headers": Object {
+    "headers": {
       "access-control-allow-credentials": "true",
       "access-control-allow-origin": "*",
-      "connection": "close",
+      "connection": "keep-alive",
       "content-length": Any<String>,
       "content-type": "application/json",
       "date": Any<String>,
@@ -73,27 +75,27 @@ Object {
 `;
 
 exports[`ApiService debugging should debug error responses 1`] = `
-Object {
+{
   "data": "",
   "errorMessage": "HTTP 500 INTERNAL SERVER ERROR",
-  "headers": Object {
+  "headers": {
     "access-control-allow-credentials": "true",
     "access-control-allow-origin": "*",
-    "connection": "close",
+    "connection": "keep-alive",
     "content-length": "0",
     "content-type": "text/html; charset=utf-8",
     "date": Any<String>,
     "server": Any<String>,
   },
-  "request": Object {
-    "data": Object {},
+  "request": {
+    "data": {},
     "endpoint": "https://httpbin.org/status/500",
-    "headers": Object {
+    "headers": {
       "b": "2",
     },
     "method": "GET",
-    "options": Object {},
-    "params": Object {
+    "options": {},
+    "params": {
       "a": "1",
     },
   },
@@ -103,27 +105,27 @@ Object {
 `;
 
 exports[`ApiService debugging should debug successful responses 1`] = `
-Object {
+{
   "data": "",
-  "headers": Object {
+  "headers": {
     "access-control-allow-credentials": "true",
     "access-control-allow-origin": "*",
-    "connection": "close",
+    "connection": "keep-alive",
     "content-type": "text/html; charset=utf-8",
     "date": Any<String>,
     "server": Any<String>,
   },
-  "request": Object {
-    "data": Object {
+  "request": {
+    "data": {
       "foo": "bar",
     },
     "endpoint": "https://httpbin.org/status/204",
-    "headers": Object {
+    "headers": {
       "Baz": "Qux",
     },
     "method": "POST",
-    "options": Object {},
-    "params": Object {},
+    "options": {},
+    "params": {},
   },
   "status": 204,
   "statusText": "NO CONTENT",

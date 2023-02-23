@@ -1,5 +1,4 @@
 const { stringify, parse } = require('../SearchParams/SearchParams.js');
-const { fetch, AbortController } = require('../fetch/fetch.js');
 const tryJson = require('../tryJson/tryJson.js');
 
 /**
@@ -237,8 +236,22 @@ class ApiRequest {
 			options.body = tryJson.stringify(this.data);
 		}
 		this.pending = true;
-		this.promise = fetch(this.url, options);
-		this.promise.then(this._markComplete, this._markComplete);
+		this.promise = new Promise((resolve, reject) => {
+			const promise = fetch(this.url, options);
+			promise.then(this._markComplete(resolve), this._markComplete(reject));
+			if (options.timeout > 0) {
+				this._timeoutHandle = setTimeout(() => {
+					const error = new Error(`HTTP timeout after ${options.timeout}ms`);
+					error.isTimeout = true;
+					this.didRejectOnTimeout = true;
+					this._abortController.abort();
+					this.pending = false;
+					this.completed = true;
+					reject(error);
+				}, options.timeout);
+			}
+		});
+		this.promise.abort = () => this.abort();
 		return this.promise;
 	}
 
@@ -271,9 +284,16 @@ class ApiRequest {
 	 * Mark this request as complete
 	 * @private
 	 */
-	_markComplete() {
-		this.pending = false;
-		this.completed = true;
+	_markComplete(callback) {
+		return data => {
+			if (this.didRejectOnTimeout) {
+				return;
+			}
+			clearTimeout(this._timeoutHandle);
+			this.pending = false;
+			this.completed = true;
+			callback(data);
+		};
 	}
 }
 

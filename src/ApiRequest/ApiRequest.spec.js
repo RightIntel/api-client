@@ -278,7 +278,7 @@ describe('ApiRequest abort', () => {
 		try {
 			await promise;
 		} catch (error) {
-			expect(error).toBeInstanceOf(Error);
+			expect(error.name).toBe('AbortError');
 			expect(request.pending).toBe(false);
 		}
 	});

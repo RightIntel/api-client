@@ -1,6 +1,6 @@
 {
   "name": "sh-api-client",
-  "version": "3.2.2",
+  "version": "3.3.0",
   "description": "Sharpr JavaScript api client for use in React and Node",
   "main": "index.js",
   "scripts": {
@@ -23,18 +23,12 @@
   },
   "homepage": "https://github.com/RightIntel/api-client#readme",
   "devDependencies": {
-    "fetch-mock": "^9.11.0",
-    "jest": "^27.0.4",
-    "prettier": "^2.3.1",
-    "pretty-var-export": "^1.1.4"
+    "jest": "29.4.3",
+    "prettier": "2.8.4",
+    "pretty-var-export": "1.1.7"
   },
   "dependencies": {
-    "@shelf/fast-chunk-string": "^1.1.1",
-    "abort-controller": "^3.0.0",
-    "any-date-parser": "^1.4.5",
-    "is-promise": "^4.0.0",
-    "lodash-es": "^4.17.21",
-    "node-fetch": "^2.6.1",
-    "parse-duration": "^1.0.0"
+    "@shelf/fast-chunk-string": "3.0.0",
+    "any-date-parser": "1.5.3"
   }
 }

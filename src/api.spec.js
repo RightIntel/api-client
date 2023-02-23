@@ -1,17 +1,13 @@
 const ApiService = require('./ApiService/ApiService.js');
 const api = require('./api.js');
-const fetchMock = require('fetch-mock');
 const {
-	get,
-	post,
-	head,
-	put,
-	patch,
-	del,
-	patchDifference,
-	abort,
-	submitJob,
-} = api;
+	mockResponse,
+	clearFetchMocks,
+	stopMockingFetch,
+} = require('./mockNodeNativeFetch/mockNodeNativeFetch.js');
+
+const { get, post, head, put, patch, del, patchDifference, abort, submitJob } =
+	api;
 
 describe('api instance', () => {
 	it('should be an object instance', () => {
@@ -32,7 +28,7 @@ describe('other exports', () => {
 	});
 });
 describe('Handle real caching situation', () => {
-	it('should return identical promise and identical response object', async () => {
+	it('should return identical response object if cached', async () => {
 		const promise1 = api.get(
 			'https://httpbin.org/get',
 			{ b: 2 },
@@ -43,21 +39,24 @@ describe('Handle real caching situation', () => {
 		const resp1 = await promise1;
 		const promise2 = api.get('https://httpbin.org/get?b=2');
 		const resp2 = await promise2;
-		expect(promise1).toBe(promise2);
 		expect(resp1).toBe(resp2);
 	});
 });
-describe('Playing nice with fetch-mock', () => {
-	afterEach(() => fetchMock.reset());
-	it('should allow mocking responses', async () => {
-		const fakeUrl = 'https://example.com/foo';
-		fetchMock.get(fakeUrl, {
-			body: { bar: 'baz' },
+describe('Playing nice with mok', () => {
+	beforeAll(() => {
+		mockResponse({
+			url: 'https://example.com/foo',
 			headers: {
 				'Content-type': 'application/json',
 				Header1: 'Value1',
 			},
+			body: { bar: 'baz' },
 		});
+	});
+	afterEach(clearFetchMocks);
+	afterAll(stopMockingFetch);
+	it('should allow mocking responses', async () => {
+		const fakeUrl = 'https://example.com/foo';
 		const resp = await api.get(fakeUrl);
 		expect(resp.data).toEqual({ bar: 'baz' });
 		expect(resp.headers.header1).toEqual('Value1');

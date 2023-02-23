@@ -1,4 +1,4 @@
-const parseDuration = require('parse-duration');
+const parseDuration = require('../parseDuration/parseDuration.js');
 const equalsOrMatches = require('../equalsOrMatches/equalsOrMatches.js');
 
 class ApiCache {
@@ -18,7 +18,7 @@ class ApiCache {
 		const { method, url } = request;
 		for (const entry of this.entries) {
 			if (entry.request.method === method && entry.request.url === url) {
-				return entry;
+				return entry.getPromise();
 			}
 		}
 		return null;
@@ -35,7 +35,22 @@ class ApiCache {
 	 * @see https://github.com/jkroso/parse-duration#readme for supported caching expression
 	 */
 	add(request, promise) {
-		const entry = { request, promise };
+		const entry = {
+			request,
+			getPromise() {
+				if (entry.resolution) {
+					return Promise.resolve(entry.resolution);
+				} else if (entry.rejection) {
+					return Promise.reject(entry.rejection);
+				} else {
+					return promise;
+				}
+			},
+		};
+		promise.then(
+			resolution => (entry.resolution = resolution),
+			rejection => (entry.rejection = rejection)
+		);
 		this.entries.push(entry);
 		const deleteAfter = this.getMilliseconds(request.options.cacheFor);
 		setTimeout(() => {
@@ -69,7 +84,7 @@ class ApiCache {
 
 	/**
 	 * Given a cacheFor number or string, return the number of milliseconds to cache for
-	 * @param {Number|String} cacheFor  Number of milliseconds or a string such as 45s, 5m, 8h, 1d
+	 * @param {Number|String} cacheFor  Number of milliseconds or a string such as "45s", "5 minutes", "8h", "1d"
 	 * @returns {Number}
 	 */
 	getMilliseconds(cacheFor) {

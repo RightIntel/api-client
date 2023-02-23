@@ -76,7 +76,7 @@ describe('ApiResponse instance', () => {
 	it('should return numPages', () => {
 		expect(apiResp.numPages).toBe(3);
 	});
-	it('should return isEmpty', () => {
+	it('should return isEmptyResponse', () => {
 		expect(apiResp.isEmpty).toBe(false);
 	});
 	it('should return location', () => {
