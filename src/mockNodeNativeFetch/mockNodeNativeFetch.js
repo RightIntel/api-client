@@ -1,3 +1,4 @@
+/* istanbul ignore next @preserve */
 class FetchMocker {
 	#handlers = [];
 	#jestMock;
@@ -9,15 +10,8 @@ class FetchMocker {
 		options.method = options.method.toUpperCase();
 		for (const handler of this.#handlers) {
 			if (handler.url !== url || options.method !== handler.method) {
-				// console.log("................ handler didn't match", {
-				// 	handlerUrl: handler.url,
-				// 	url,
-				// 	handlerMethod: handler.method,
-				// 	method: options.method,
-				// });
 				continue;
 			}
-			// console.log('................ handler MATCHED', handler);
 			return new Promise((resolve, reject) => {
 				if (handler.body && typeof handler.body === 'object') {
 					handler.body = JSON.stringify(handler.body);
@@ -28,25 +22,20 @@ class FetchMocker {
 						handler.headers['Content-Type'] = 'application/json;charset=UTF-8';
 					}
 				}
-				// console.log('................ setting timeout', handler.delay);
 				setTimeout(() => {
-					// console.log('................ in timeout', options.signal);
 					const resp = new Response(handler.body, {
 						headers: handler.headers,
 						status: handler.status,
 					});
 					if (options.signal?.aborted) {
-						// console.log('................ rejecting aborted request', resp);
 						resp.aborted = true;
 						reject(resp);
 					} else {
-						// console.log('................ resolving response', resp);
 						resolve(resp);
 					}
 				}, handler.delay);
 			});
 		}
-		// console.log('>>>>>>>>>>>>>>>> using native fetch');
 		return this.#nativeFetch(url, options);
 	};
 	spyOnFetch = () => {
@@ -59,11 +48,9 @@ class FetchMocker {
 		return this;
 	};
 	clearFetchMocks = () => {
-		// console.log('======================== clearFetchMocks');
 		this.#handlers = [];
 	};
 	stopMockingFetch = () => {
-		// console.log('======================== stopMockingFetch');
 		this.#jestMock?.mockRestore();
 	};
 	mockResponse = ({

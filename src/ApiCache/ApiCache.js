@@ -90,8 +90,11 @@ class ApiCache {
 	getMilliseconds(cacheFor) {
 		if (typeof cacheFor === 'number') {
 			return cacheFor;
+		} else if (typeof cacheFor === 'string') {
+			return parseDuration(cacheFor);
+		} else {
+			return 0;
 		}
-		return parseDuration(cacheFor);
 	}
 }
 

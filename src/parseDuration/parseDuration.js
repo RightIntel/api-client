@@ -39,8 +39,6 @@ const lookup = {
 	y: YEAR,
 };
 
-const DEFAULT_DURATION = lookup.minute;
-
 /**
  * Convert a duration string to milliseconds (e.g. "14 days", "2.5min", "4h", etc.)
  * @param durationString  The string to parse
@@ -49,14 +47,16 @@ const DEFAULT_DURATION = lookup.minute;
 function parseDuration(durationString) {
 	const match = durationString?.match(/^([\d.]+)\s*([a-z]+)$/i);
 	if (!match) {
-		return DEFAULT_DURATION;
+		throw new Error(`Error parsing duration "${durationString}"`);
 	}
 	const value = parseFloat(match[1]);
 	const unit = lookup[match[2].toLowerCase()];
 	if (value > 0 && unit > 0) {
 		return value * unit;
-	} else {
-		return DEFAULT_DURATION;
+	} else if (value > 0) {
+		throw new Error(`Unknown duration unit in "${durationString}"`);
+	} else if (unit > 0) {
+		throw new Error(`Duration must be greater than zero "${durationString}`);
 	}
 }
 

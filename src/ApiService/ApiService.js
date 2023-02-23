@@ -334,6 +334,7 @@ class ApiService {
 	_handleOtherError(request, error) {
 		// FetchError { 'messsage': 'request to ... failed, reason: getaddrinfo ENOTFOUND ...' }
 		const errorClass = error?.prototype?.name || 'Error';
+		/* istanbul ignore next @preserve */
 		if (typeof document !== 'undefined') {
 			console.error(
 				`sh-api-client: ApiService ${errorClass} requesting ${request.method} ${request.url} - "${error?.message}"`,

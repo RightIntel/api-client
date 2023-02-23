@@ -44,6 +44,27 @@ describe('ApiCache getMilliseconds() function', () => {
 		const milliseconds = cache.getMilliseconds('2 hours');
 		expect(milliseconds).toBe(1000 * 2 * 60 * 60);
 	});
+	it('should throw on parse error', () => {
+		const thrower = () => {
+			const cache = new ApiCache();
+			cache.getMilliseconds('monkeys');
+		};
+		expect(thrower).toThrowError(/error parsing/i);
+	});
+	it('should throw on parse error', () => {
+		const thrower = () => {
+			const cache = new ApiCache();
+			cache.getMilliseconds('2 winks');
+		};
+		expect(thrower).toThrowError(/unknown duration/i);
+	});
+	it('should throw on parse error', () => {
+		const thrower = () => {
+			const cache = new ApiCache();
+			cache.getMilliseconds('0h');
+		};
+		expect(thrower).toThrowError(/greater than zero/i);
+	});
 });
 
 describe('ApiCache find() function', () => {
